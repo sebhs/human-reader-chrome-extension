@@ -1,0 +1,22 @@
+{
+  "manifest_version": 2,
+  "name": "human-reader",
+  "version": "1.0",
+  "description": "Let the web speak like a human. A simple extension that uses the elevenlabs.io API to convert any text to speech.",
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["styles.css"]
+    }
+  ],
+  "web_accessible_resources": [
+    "images/play.svg",
+    "images/stop.svg",
+    "images/spinner.svg"
+  ]
+}

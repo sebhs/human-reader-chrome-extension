@@ -1,0 +1,29 @@
+# Node modules
+node_modules/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Runtime data
+.pids
+*.pid
+*.seed
+*.log
+*.csv
+*.dat
+*.out
+*.pid
+*.gz
+
+# IDE / editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+
+.npm
+.env
+.env.test

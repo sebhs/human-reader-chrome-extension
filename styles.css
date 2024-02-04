@@ -1,0 +1,10 @@
+#speakButton {
+    all: initial;
+    border-radius: 50%;
+    position: absolute;
+    filter: drop-shadow(0em 0.3em 0.8em rgba(0, 0, 0, 0.60));
+    width: 20px;
+    height: 20px;
+    background-color: #fff
+}
+  
