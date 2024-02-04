@@ -3,10 +3,10 @@ chrome.runtime.onInstalled.addListener(function () {
     "Paste your Elevenlabs API key to use this service. If you don't have one, go to elevenlabs.io to get one.\n\nPaste the API key at your own risk. You can check out the source code on my Github @sebhs."
   );
   if (apiKey) localStorage.setItem("apiKey", apiKey);
-  const voiceId = window.prompt(
-    "Enter the voice ID of the voice you want to use to read text. You can find your voice IDs in your Elevenlabs account."
-  );
-  if (voiceId) localStorage.setItem("voiceId", voiceId);
+  if (!localStorage.getItem("voiceId"))
+    localStorage.setItem("voiceId", "21m00Tcm4TlvDq8ikWAM");
+  if (!localStorage.getItem("mode"))
+    localStorage.setItem("mode", "englishfast");
 });
 
 function setPlaying() {
@@ -21,6 +21,12 @@ function setStopPlaying() {
   });
 }
 
+function handleNoAPIKey() {
+  alert(
+    "Please set your API key in the extension options. If you don't have one, go to elevenlabs.io to get one."
+  );
+  setStopPlaying();
+}
 let audio = null;
 
 chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
@@ -32,45 +38,51 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
       setStopPlaying();
       return;
     }
-    const api_key = localStorage.getItem("apiKey");
-    const voice_id = localStorage.getItem("voiceId");
-    const multiLingual = true;
-    const model_id = multiLingual
-      ? "eleven_multilingual_v2"
-      : "eleven_turbo_v2";
-    fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice_id}`, {
-      method: "POST",
-      headers: {
-        "xi-api-key": api_key,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model_id: model_id,
-        text: request.text,
-        voice_settings: {
-          similarity_boost: 0.5,
-          stability: 0.5,
+    if (!localStorage.getItem("apiKey")) {
+      handleNoAPIKey();
+    } else {
+      const api_key = localStorage.getItem("apiKey");
+      const voiceId = localStorage.getItem("voiceId")
+        ? localStorage.getItem("voiceId")
+        : "21m00Tcm4TlvDq8ikWAM";
+      const model_id =
+        localStorage.getItem("mode") === "multilingual"
+          ? "eleven_multilingual_v2"
+          : "eleven_turbo_v2";
+      fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+        method: "POST",
+        headers: {
+          "xi-api-key": api_key,
+          "Content-Type": "application/json",
         },
-      }),
-    })
-      .then((response) => {
-        return response.blob();
+        body: JSON.stringify({
+          model_id: model_id,
+          text: request.text,
+          voice_settings: {
+            similarity_boost: 0.5,
+            stability: 0.5,
+          },
+        }),
       })
-      .then((blob) => {
-        const url = URL.createObjectURL(blob);
-        audio = new Audio(url);
-        audio.play();
-        setPlaying();
+        .then((response) => {
+          return response.blob();
+        })
+        .then((blob) => {
+          const url = URL.createObjectURL(blob);
+          audio = new Audio(url);
+          audio.play();
+          setPlaying();
 
-        audio.onended = function () {
-          audio = null;
+          audio.onended = function () {
+            audio = null;
+            setStopPlaying();
+          };
+        })
+        .catch((error) => {
+          console.error(error);
           setStopPlaying();
-        };
-      })
-      .catch((error) => {
-        console.error(error);
-        setStopPlaying();
-      });
-    return true;
+        });
+      return true;
+    }
   }
 });
