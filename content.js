@@ -32,19 +32,22 @@ const readLocalStorage = async (keys) => {
 };
 
 const fetchAudio = async (text) => {
-  const storage = await readLocalStorage(["apiKey", "voiceId", "mode"]);
+  const storage = await readLocalStorage(["apiKey", "selectedVoiceId", "mode"]);
   if (!storage.apiKey) {
     alert(
       "Please set your elevenlabs API key in the extension settings. If you don't have one, go to elevenlabs.io to get one."
     );
     setButtonPlay();
   } else {
-    const voiceId = storage.voiceId ? storage.voiceId : "21m00Tcm4TlvDq8ikWAM";
+    //FIXME: handle the defaults in content.js
+    const selectedVoiceId = storage.selectedVoiceId
+      ? storage.selectedVoiceId
+      : "21m00Tcm4TlvDq8ikWAM";
     const mode = storage.mode ? storage.mode : "englishfast";
     const model_id =
       mode === "multilingual" ? "eleven_multilingual_v2" : "eleven_turbo_v2";
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
       {
         method: "POST",
         headers: {
