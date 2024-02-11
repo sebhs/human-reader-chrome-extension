@@ -19,7 +19,6 @@ const readLocalStorage = async (keys) => {
 };
 
 const populateVoices = async () => {
-  alert("populateVoices");
   const storage = await readLocalStorage(["voices", "voiceId"]);
   const voices = storage.voices;
   if (voices) {
