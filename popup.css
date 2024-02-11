@@ -6,6 +6,14 @@ body {
   padding: 0;
 }
 
+a {
+  color: #0000ee;
+}
+
+a:visited {
+  color: #0000ee;
+}
+
 .topSection {
   display: flex;
   align-items: baseline;

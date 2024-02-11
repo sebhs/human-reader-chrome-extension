@@ -26,7 +26,12 @@
   "host_permissions": ["<all_urls>"],
   "web_accessible_resources": [
     {
-      "resources": ["images/play.svg", "images/stop.svg", "images/spinner.svg"],
+      "resources": [
+        "images/play.svg",
+        "images/stop.svg",
+        "images/spinner.svg",
+        "media/error-no-api-key.mp3"
+      ],
       "matches": ["<all_urls>"]
     }
   ],

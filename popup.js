@@ -166,13 +166,17 @@ document.getElementById("syncVoices").addEventListener("click", async () => {
 });
 
 document.getElementById("setApiKey").addEventListener("click", async () => {
+  const button = document.getElementById("setApiKey");
   const inputValue = document.getElementById("apiKey").value;
+  button.textContent = "...";
   try {
     await setAPIKey(inputValue);
     await fetchVoices();
+    button.textContent = "Set";
     renderSettings();
   } catch (error) {
     setWelcomeScreen();
+    button.textContent = "Set";
     alert("Invalid API key, please try again.");
     console.error(error);
   }
