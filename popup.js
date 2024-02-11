@@ -1,19 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
-  chrome.storage.local.get(["apiKey", "voiceId", "mode"], (result) => {
-    const apiKey = result.apiKey ? result.apiKey : "";
-    document.getElementById("apiKey").value = apiKey;
-
-    const voiceId = result.voiceId ? result.voiceId : "21m00Tcm4TlvDq8ikWAM";
-    document.getElementById("voiceId").value = voiceId;
-    chrome.storage.local.set({ voiceId: voiceId });
-
-    const mode = result.mode ? result.mode : "englishfast";
-    document.getElementById("mode").value = mode;
-    chrome.storage.local.set({ mode: mode });
-  });
-});
-
-function setStorageItem(key, value) {
+const setStorageItem = async (key, value) => {
   return new Promise((resolve, reject) => {
     chrome.storage.local.set({ [key]: value }, function () {
       if (chrome.runtime.lastError) {
@@ -23,7 +8,7 @@ function setStorageItem(key, value) {
       }
     });
   });
-}
+};
 
 const readLocalStorage = async (keys) => {
   return new Promise((resolve, reject) => {
@@ -34,6 +19,7 @@ const readLocalStorage = async (keys) => {
 };
 
 const populateVoices = async () => {
+  alert("populateVoices");
   const storage = await readLocalStorage(["voices", "voiceId"]);
   const voices = storage.voices;
   if (voices) {
@@ -51,13 +37,6 @@ const populateVoices = async () => {
     if (selectedVoiceId) select.value = selectedVoiceId;
   }
 };
-
-const select = document.getElementById("voices");
-
-select.addEventListener("change", async (event) => {
-  const selectedVoiceId = event.target.value;
-  await chrome.storage.local.set({ voiceId: selectedVoiceId });
-});
 
 const fetchVoices = async () => {
   const storage = await readLocalStorage(["apiKey", "voiceId", "mode"]);
@@ -81,11 +60,42 @@ const fetchVoices = async () => {
           };
         });
         await setStorageItem("voices", voices);
-        populateVoices();
+        await populateVoices();
       }
     }
   }
 };
+
+document.addEventListener("DOMContentLoaded", async () => {
+  populateVoices();
+  const storage = await readLocalStorage([
+    "apiKey",
+    "voiceId",
+    "mode",
+    "voices",
+  ]);
+  if (storage.apiKey) document.getElementById("apiKey").value = apiKey;
+  if (storage.voiceId) {
+    document.getElementById("voiceId").value = voiceId;
+  } else if (storage.voices) {
+    document.getElementById("voiceId").value = storage.voices[0].id;
+    await setStorageItem("voiceId", storage.voices[0].id);
+  }
+
+  if (storage.mode) {
+    document.getElementById("mode").value = storage.mode;
+  } else {
+    const defaultMode = "englishfast";
+    document.getElementById("mode").value = defaultMode;
+    await setStorageItem("mode", defaultMode);
+  }
+});
+
+const select = document.getElementById("voices");
+select.addEventListener("change", async (event) => {
+  const selectedVoiceId = event.target.value;
+  await setStorageItem("voiceId", selectedVoiceId);
+});
 
 document.getElementById("syncVoices").addEventListener("click", async () => {
   const button = document.getElementById("syncVoices");
@@ -107,10 +117,7 @@ document.getElementById("setApiKey").addEventListener("click", async () => {
   fetchVoices();
 });
 
-document.getElementById("mode").addEventListener("change", () => {
+document.getElementById("mode").addEventListener("change", async () => {
   const mode = document.getElementById("mode").value;
-  chrome.storage.local.set({ mode: mode });
+  await setStorageItem("mode", mode);
 });
-
-//call each time popup is opened
-populateVoices();

@@ -14,27 +14,30 @@
       <a href="https://elevenlabs.io">Elevenlabs</a> API to convert any text to
       speech.
     </div>
-    <h2>Settings</h2>
-    <div class="settingsItem">
-      <label for="apiKey">API Key:</label>
-      <input type="password" id="apiKey" />
-      <button id="setApiKey">Set</button>
-    </div>
-    <div class="settingsItem">
-      <select id="voices"></select>
-      <button id="syncVoices">Sync</button>
-    </div>
-    <div class="settingsItem">
-      <label for="mode">Mode:</label>
-      <select id="mode">
-        <option value="multilingual">Multilingual, but slower</option>
-        <option value="englishfast">Only English, but faster</option>
-      </select>
+    <div class="settings">
+      <h2>Settings</h2>
+      <div class="settingsItem">
+        <label for="apiKey">API Key:</label>
+        <input type="password" id="apiKey" />
+        <button id="setApiKey">Set</button>
+      </div>
+      <div class="settingsItem">
+        <label for="voices">Voices:</label>
+        <select id="voices"></select>
+        <button id="syncVoices">Sync</button>
+      </div>
+      <div class="settingsItem">
+        <label for="mode">Mode:</label>
+        <select id="mode">
+          <option value="multilingual">Multilingual, but slower</option>
+          <option value="englishfast">Only English, but faster</option>
+        </select>
+      </div>
     </div>
     <div id="info">
       This chrome extension was created by
-      <a href="https://twitter.com/sebselassie">Seb</a> but is still in beta. Find the
-      source code
+      <a href="https://twitter.com/sebselassie">Seb</a> but is still in beta.
+      Find the source code
       <a href="https://github.com/sebhs/human-reader-chrome-extension">here</a>.
       Contributions and feedback are welcome.
     </div>
