@@ -23,7 +23,7 @@ const setButtonStop = () => {
 
 let audio = null;
 
-const readLocalStorage = async (keys) => {
+const readStorage = async (keys) => {
   return new Promise((resolve, reject) => {
     chrome.storage.local.get(keys, function (result) {
       resolve(result);
@@ -32,17 +32,15 @@ const readLocalStorage = async (keys) => {
 };
 
 const fetchAudio = async (text) => {
-  const storage = await readLocalStorage(["apiKey", "selectedVoiceId", "mode"]);
+  const storage = await readStorage(["apiKey", "selectedVoiceId", "mode"]);
   if (!storage.apiKey) {
-    alert(
-      "Please set your elevenlabs API key in the extension settings. If you don't have one, go to elevenlabs.io to get one."
-    );
+    alert("Please set your elevenlabs API key in the extension settings.");
+    chrome.storage.local.clear();
     setButtonPlay();
   } else {
-    //FIXME: handle the defaults in content.js
     const selectedVoiceId = storage.selectedVoiceId
       ? storage.selectedVoiceId
-      : "21m00Tcm4TlvDq8ikWAM";
+      : "21m00Tcm4TlvDq8ikWAM"; //fallback Voice ID
     const mode = storage.mode ? storage.mode : "englishfast";
     const model_id =
       mode === "multilingual" ? "eleven_multilingual_v2" : "eleven_turbo_v2";
@@ -91,10 +89,10 @@ async function onClickSpeakButton() {
         setButtonPlay();
       };
     } else if (response.status === 401) {
-      alert("Unauthorized. Please check your API key.");
+      alert("Unauthorized. Please set your API key.");
+      chrome.storage.local.clear();
       setButtonPlay();
     } else {
-      alert("Error fetching audio. Check console.");
       setButtonPlay();
     }
   } catch (error) {

@@ -10,7 +10,7 @@ const setStorageItem = async (key, value) => {
   });
 };
 
-const readLocalStorage = async (keys) => {
+const readStorage = async (keys) => {
   return new Promise((resolve, reject) => {
     chrome.storage.local.get(keys, function (result) {
       resolve(result);
@@ -34,18 +34,18 @@ const setSettingsScreen = () => {
 
 const renderSettings = async (storage) => {
   if (!storage)
-    storage = await readLocalStorage([
+    storage = await readStorage([
       "apiKey",
       "selectedVoiceId",
       "mode",
       "voices",
     ]);
-  setSettingsScreen();
   if (!storage.apiKey) {
     setWelcomeScreen();
     chrome.storage.local.clear();
     return;
   }
+  setSettingsScreen();
   if (!storage.selectedVoiceId || !storage.voices) {
     await fetchVoices();
     await setStorageItem("selectedVoiceId", storage.voices[0].id);
@@ -60,7 +60,7 @@ const renderSettings = async (storage) => {
 };
 
 const populateVoices = async () => {
-  const storage = await readLocalStorage(["voices", "selectedVoiceId"]);
+  const storage = await readStorage(["voices", "selectedVoiceId"]);
   const voices = storage.voices;
   if (voices) {
     const select = document.getElementById("voices");
@@ -95,7 +95,7 @@ const setAPIKey = async (apiKey) => {
 };
 
 const fetchVoices = async () => {
-  const storage = await readLocalStorage(["apiKey", "selectedVoiceId", "mode"]);
+  const storage = await readStorage(["apiKey", "selectedVoiceId", "mode"]);
   if (storage.apiKey) {
     let response = await fetch("https://api.elevenlabs.io/v1/voices", {
       method: "GET",
@@ -129,7 +129,7 @@ const fetchVoices = async () => {
 
 document.addEventListener("DOMContentLoaded", async () => {
   populateVoices();
-  const storage = await readLocalStorage([
+  const storage = await readStorage([
     "apiKey",
     "selectedVoiceId",
     "mode",
@@ -150,11 +150,19 @@ select.addEventListener("change", async (event) => {
 
 document.getElementById("syncVoices").addEventListener("click", async () => {
   const button = document.getElementById("syncVoices");
-  await fetchVoices();
-  button.innerHTML = "&#10003;"; //checkmark
-  setTimeout(function () {
-    button.textContent = "Sync";
-  }, 1000);
+  button.textContent = "...";
+  try {
+    await fetchVoices();
+    button.innerHTML = "&#10003;"; //checkmark
+    setTimeout(function () {
+      button.textContent = "Sync";
+    }, 1000);
+  } catch {
+    button.textContent = "Error";
+    setTimeout(function () {
+      button.textContent = "Sync";
+    }, 1000);
+  }
 });
 
 document.getElementById("setApiKey").addEventListener("click", async () => {
