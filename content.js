@@ -23,7 +23,7 @@ const setButtonStop = () => {
 
 let audio = null;
 
-const readLocalStorage = async (keys) => {
+const readStorage = async (keys) => {
   return new Promise((resolve, reject) => {
     chrome.storage.local.get(keys, function (result) {
       resolve(result);
@@ -32,19 +32,27 @@ const readLocalStorage = async (keys) => {
 };
 
 const fetchAudio = async (text) => {
-  const storage = await readLocalStorage(["apiKey", "voiceId", "mode"]);
+  const storage = await readStorage(["apiKey", "selectedVoiceId", "mode"]);
   if (!storage.apiKey) {
-    alert(
-      "Please set your elevenlabs API key in the extension settings. If you don't have one, go to elevenlabs.io to get one."
-    );
-    setButtonPlay();
+    audio = new Audio(chrome.runtime.getURL("media/error-no-api-key.mp3"));
+    audio.play();
+    //since alert() is blocking, timeout is needed so audio plays while alert is visible.
+    setTimeout(() => {
+      alert(
+        "Please set your Elevenlabs API key in the extension settings to use Human Reader."
+      );
+      chrome.storage.local.clear();
+      setButtonPlay();
+    }, 100);
   } else {
-    const voiceId = storage.voiceId ? storage.voiceId : "21m00Tcm4TlvDq8ikWAM";
+    const selectedVoiceId = storage.selectedVoiceId
+      ? storage.selectedVoiceId
+      : "21m00Tcm4TlvDq8ikWAM"; //fallback Voice ID
     const mode = storage.mode ? storage.mode : "englishfast";
     const model_id =
       mode === "multilingual" ? "eleven_multilingual_v2" : "eleven_turbo_v2";
     const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`,
+      `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
       {
         method: "POST",
         headers: {
@@ -88,10 +96,10 @@ async function onClickSpeakButton() {
         setButtonPlay();
       };
     } else if (response.status === 401) {
-      alert("Unauthorized. Please check your API key.");
+      alert("Unauthorized. Please set your API key.");
+      chrome.storage.local.clear();
       setButtonPlay();
     } else {
-      alert("Error fetching audio. Check console.");
       setButtonPlay();
     }
   } catch (error) {

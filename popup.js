@@ -10,7 +10,7 @@ const setStorageItem = async (key, value) => {
   });
 };
 
-const readLocalStorage = async (keys) => {
+const readStorage = async (keys) => {
   return new Promise((resolve, reject) => {
     chrome.storage.local.get(keys, function (result) {
       resolve(result);
@@ -18,8 +18,49 @@ const readLocalStorage = async (keys) => {
   });
 };
 
+const setWelcomeScreen = () => {
+  const settings = document.getElementById("settings");
+  const welcome = document.getElementById("welcome");
+  settings.style.display = "none";
+  welcome.style.display = "block";
+};
+
+const setSettingsScreen = () => {
+  const settings = document.getElementById("settings");
+  const welcome = document.getElementById("welcome");
+  settings.style.display = "block";
+  welcome.style.display = "none";
+};
+
+const renderSettings = async (storage) => {
+  if (!storage)
+    storage = await readStorage([
+      "apiKey",
+      "selectedVoiceId",
+      "mode",
+      "voices",
+    ]);
+  if (!storage.apiKey) {
+    setWelcomeScreen();
+    chrome.storage.local.clear();
+    return;
+  }
+  setSettingsScreen();
+  if (!storage.selectedVoiceId || !storage.voices) {
+    await fetchVoices();
+    await setStorageItem("selectedVoiceId", storage.voices[0].id);
+    document.getElementById("selectedVoiceId").value = storage.voices[0].id;
+  }
+  if (!storage.mode) {
+    const defaultMode = "englishfast";
+    document.getElementById("mode").value = defaultMode;
+    await setStorageItem("mode", defaultMode);
+  }
+  document.getElementById("mode").value = storage.mode;
+};
+
 const populateVoices = async () => {
-  const storage = await readLocalStorage(["voices", "voiceId"]);
+  const storage = await readStorage(["voices", "selectedVoiceId"]);
   const voices = storage.voices;
   if (voices) {
     const select = document.getElementById("voices");
@@ -32,13 +73,29 @@ const populateVoices = async () => {
       option.text = voice.name;
       select.appendChild(option);
     });
-    const selectedVoiceId = storage.voiceId;
+    const selectedVoiceId = storage.selectedVoiceId;
     if (selectedVoiceId) select.value = selectedVoiceId;
   }
 };
 
+const setAPIKey = async (apiKey) => {
+  const response = await fetch("https://api.elevenlabs.io/v1/user", {
+    method: "GET",
+    headers: {
+      "xi-api-key": apiKey,
+      "Content-Type": "application/json",
+    },
+  });
+  if (response.ok) {
+    console.log(response);
+    await setStorageItem("apiKey", apiKey);
+  } else {
+    throw new Error("API request failed");
+  }
+};
+
 const fetchVoices = async () => {
-  const storage = await readLocalStorage(["apiKey", "voiceId", "mode"]);
+  const storage = await readStorage(["apiKey", "selectedVoiceId", "mode"]);
   if (storage.apiKey) {
     let response = await fetch("https://api.elevenlabs.io/v1/voices", {
       method: "GET",
@@ -48,7 +105,12 @@ const fetchVoices = async () => {
       },
     });
     if (!response.ok) {
-      console.error(`HTTP error! status: ${response.status}`);
+      if (response.status === 401) {
+        chrome.storage.local.clear();
+        setWelcomeScreen();
+      } else {
+        console.error(`HTTP error! status: ${response.status}`);
+      }
     } else {
       response = await response.json();
       if (response.voices) {
@@ -67,56 +129,72 @@ const fetchVoices = async () => {
 
 document.addEventListener("DOMContentLoaded", async () => {
   populateVoices();
-  const storage = await readLocalStorage([
+  const storage = await readStorage([
     "apiKey",
-    "voiceId",
+    "selectedVoiceId",
     "mode",
     "voices",
   ]);
-  if (storage.apiKey) document.getElementById("apiKey").value = apiKey;
-  if (storage.voiceId) {
-    document.getElementById("voiceId").value = voiceId;
-  } else if (storage.voices) {
-    document.getElementById("voiceId").value = storage.voices[0].id;
-    await setStorageItem("voiceId", storage.voices[0].id);
-  }
-
-  if (storage.mode) {
-    document.getElementById("mode").value = storage.mode;
+  if (storage.apiKey) {
+    renderSettings(storage);
   } else {
-    const defaultMode = "englishfast";
-    document.getElementById("mode").value = defaultMode;
-    await setStorageItem("mode", defaultMode);
+    setWelcomeScreen();
   }
 });
 
 const select = document.getElementById("voices");
 select.addEventListener("change", async (event) => {
   const selectedVoiceId = event.target.value;
-  await setStorageItem("voiceId", selectedVoiceId);
+  await setStorageItem("selectedVoiceId", selectedVoiceId);
 });
 
 document.getElementById("syncVoices").addEventListener("click", async () => {
   const button = document.getElementById("syncVoices");
-  await fetchVoices();
-  button.innerHTML = "&#10003;"; //checkmark
-  setTimeout(function () {
-    button.textContent = "Sync";
-  }, 1000);
+  button.textContent = "...";
+  try {
+    await fetchVoices();
+    button.innerHTML = "&#10003;"; //checkmark
+    setTimeout(function () {
+      button.textContent = "Sync";
+    }, 1000);
+  } catch {
+    button.textContent = "Error";
+    setTimeout(function () {
+      button.textContent = "Sync";
+    }, 1000);
+  }
 });
 
 document.getElementById("setApiKey").addEventListener("click", async () => {
-  const inputValue = document.getElementById("apiKey").value;
   const button = document.getElementById("setApiKey");
-  await setStorageItem("apiKey", inputValue);
-  button.innerHTML = "&#10003;"; //checkmark
-  setTimeout(function () {
+  const inputValue = document.getElementById("apiKey").value;
+  button.textContent = "...";
+  try {
+    await setAPIKey(inputValue);
+    await fetchVoices();
     button.textContent = "Set";
-  }, 1000);
-  fetchVoices();
+    renderSettings();
+  } catch (error) {
+    setWelcomeScreen();
+    button.textContent = "Set";
+    alert("Invalid API key, please try again.");
+    console.error(error);
+  }
 });
 
 document.getElementById("mode").addEventListener("change", async () => {
   const mode = document.getElementById("mode").value;
   await setStorageItem("mode", mode);
+});
+
+document.getElementById("clearStorage").addEventListener("click", function () {
+  if (
+    confirm(
+      "Are you sure you want to clear your data? This will remove your API key and all your settings."
+    )
+  ) {
+    chrome.storage.local.clear();
+    setWelcomeScreen();
+    document.getElementById("apiKey").value = "";
+  }
 });
