@@ -34,9 +34,16 @@ const readStorage = async (keys) => {
 const fetchAudio = async (text) => {
   const storage = await readStorage(["apiKey", "selectedVoiceId", "mode"]);
   if (!storage.apiKey) {
-    alert("Please set your elevenlabs API key in the extension settings.");
-    chrome.storage.local.clear();
-    setButtonPlay();
+    audio = new Audio(chrome.runtime.getURL("media/error-no-api-key.mp3"));
+    audio.play();
+    //since alert() is blocking, timeout is needed so audio plays while alert is visible.
+    setTimeout(() => {
+      alert(
+        "Please set your Elevenlabs API key in the extension settings to use Human Reader."
+      );
+      chrome.storage.local.clear();
+      setButtonPlay();
+    }, 100);
   } else {
     const selectedVoiceId = storage.selectedVoiceId
       ? storage.selectedVoiceId
