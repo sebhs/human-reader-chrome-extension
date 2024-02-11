@@ -178,7 +178,7 @@ document.getElementById("mode").addEventListener("change", async () => {
 document.getElementById("clearStorage").addEventListener("click", function () {
   if (
     confirm(
-      "Are you sure you want to clear the storage? This will remove your API key and all your settings."
+      "Are you sure you want to clear your data? This will remove your API key and all your settings."
     )
   ) {
     chrome.storage.local.clear();
