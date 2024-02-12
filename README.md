@@ -1,4 +1,4 @@
-# Human Reader, powered by ElevenLabs
+# Human Reader
 
 A Chrome extension that uses the elevenlabs.io API to let you listen to any text on the web. This was a weekend project, so consider it beta. Any feedback or contributions are welcome! 
 
