@@ -27,3 +27,4 @@ yarn-error.log*
 .npm
 .env
 .env.test
+media/.DS_Store
