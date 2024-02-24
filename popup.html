@@ -29,6 +29,30 @@
           <option value="multilingual">Multilingual, but slower</option>
         </select>
       </div>
+      <div class="settingsItem">
+        <label for="speed">Speed:</label>
+        <span id="speedValue">1x</span>
+        <input
+          type="range"
+          min="0.5"
+          max="2.5"
+          step="0.25"
+          value="1"
+          list="tickmarks"
+          id="speedInput"
+        />
+        <datalist id="tickmarks">
+          <option value="0.5" label="0.5x"></option>
+          <option value="0.75" label="0.75x"></option>
+          <option value="1" label="1x"></option>
+          <option value="1.25" label="1.25x"></option>
+          <option value="1.5" label="1.5x"></option>
+          <option value="1.75" label="1.75x"></option>
+          <option value="2" label="2x"></option>
+          <option value="2.25" label="2.25x"></option>
+          <option value="2.5" label="2.5x"></option>
+        </datalist>
+      </div>
       <div class="clearStorage">
         <a href="#" id="clearStorage">Clear all data</a>
       </div>
