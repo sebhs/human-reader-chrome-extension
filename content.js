@@ -15,7 +15,6 @@ ttsButton.style.display = "none";
 document.body.appendChild(ttsButton);
 
 let buttonState = "play";
-
 const setButtonState = (state) => {
   if (state === "loading") {
     buttonState = "loading";
@@ -33,8 +32,10 @@ const setButtonState = (state) => {
   }
 };
 
-//FIXME:
-let audio = null;
+let textToPlay = "";
+const setTextToPlay = (text) => {
+  textToPlay = text;
+};
 
 const readStorage = async (keys) => {
   return new Promise((resolve, reject) => {
@@ -44,7 +45,7 @@ const readStorage = async (keys) => {
   });
 };
 
-const fetchResponse = async (text, storage) => {
+const fetchResponse = async (storage) => {
   const selectedVoiceId = storage.selectedVoiceId
     ? storage.selectedVoiceId
     : "21m00Tcm4TlvDq8ikWAM"; //fallback Voice ID
@@ -63,7 +64,7 @@ const fetchResponse = async (text, storage) => {
       },
       body: JSON.stringify({
         model_id: model_id,
-        text: text,
+        text: textToPlay,
         voice_settings: {
           similarity_boost: 0.5,
           stability: 0.5,
@@ -75,7 +76,6 @@ const fetchResponse = async (text, storage) => {
 };
 
 const handleMissingApiKey = () => {
-  //FIXME: use one Audio
   const audio = new Audio(chrome.runtime.getURL("media/error-no-api-key.mp3"));
   audio.play();
   //since alert() is blocking, timeout is needed so audio plays while alert is visible.
@@ -88,15 +88,15 @@ const handleMissingApiKey = () => {
   }, 100);
 };
 let sourceOpenEventAdded = false;
-const streamAudio = async (text, storage) => {
+const streamAudio = async (storage) => {
   if (!storage.apiKey) {
     handleMissingApiKey();
     return;
   }
   streamingCompleted = false;
-  //FIXME: handle playback speed
   audioElement.src = URL.createObjectURL(mediaSource);
-
+  const playbackRate = storage.speed ? storage.speed : 1;
+  audioElement.playbackRate = playbackRate;
   audioElement.play();
   if (!sourceOpenEventAdded) {
     sourceOpenEventAdded = true;
@@ -138,7 +138,7 @@ const streamAudio = async (text, storage) => {
       const fetchAndAppendChunks = async () => {
         console.log("fetchAndAppendChunks");
         try {
-          const response = await fetchResponse(text, storage);
+          const response = await fetchResponse(storage);
           console.log("response", response);
 
           if (response.status === 401) {
@@ -192,7 +192,8 @@ async function onClickTtsButton() {
     "speed",
   ]);
   try {
-    await streamAudio(window.getSelection().toString(), storage);
+    setTextToPlay(window.getSelection().toString());
+    await streamAudio(storage);
   } catch (error) {
     console.error(error);
     setButtonState("play");
