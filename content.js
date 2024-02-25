@@ -76,6 +76,7 @@ const fetchResponse = async (storage) => {
 };
 
 const handleMissingApiKey = () => {
+  setButtonState("speak");
   const audio = new Audio(chrome.runtime.getURL("media/error-no-api-key.mp3"));
   audio.play();
   //since alert() is blocking, timeout is needed so audio plays while alert is visible.
