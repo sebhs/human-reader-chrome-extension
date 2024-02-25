@@ -51,11 +51,12 @@ const renderSettings = async (storage) => {
     chrome.storage.local.clear();
     return;
   }
-  setSettingsScreen();
   if (!storage.selectedVoiceId || !storage.voices) {
     await fetchVoices();
     await setStorageItem("selectedVoiceId", storage.voices[0].id);
     document.getElementById("selectedVoiceId").value = storage.voices[0].id;
+  } else {
+    fetchVoices(); // Don't wait for this to finish, can update in the background
   }
   if (!storage.mode) {
     const defaultMode = "englishfast";
@@ -66,6 +67,7 @@ const renderSettings = async (storage) => {
 
   const speedValue = storage.speed ? storage.speed : 1;
   setSpeedValue(speedValue);
+  setSettingsScreen();
 };
 
 const populateVoices = async () => {
@@ -156,23 +158,6 @@ const select = document.getElementById("voices");
 select.addEventListener("change", async (event) => {
   const selectedVoiceId = event.target.value;
   await setStorageItem("selectedVoiceId", selectedVoiceId);
-});
-
-document.getElementById("syncVoices").addEventListener("click", async () => {
-  const button = document.getElementById("syncVoices");
-  button.textContent = "...";
-  try {
-    await fetchVoices();
-    button.innerHTML = "&#10003;"; //checkmark
-    setTimeout(function () {
-      button.textContent = "Sync";
-    }, 1000);
-  } catch {
-    button.textContent = "Error";
-    setTimeout(function () {
-      button.textContent = "Sync";
-    }, 1000);
-  }
 });
 
 document.getElementById("setApiKey").addEventListener("click", async () => {
