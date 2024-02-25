@@ -31,8 +31,7 @@ const readStorage = async (keys) => {
   });
 };
 
-const fetchAudio = async (text) => {
-  const storage = await readStorage(["apiKey", "selectedVoiceId", "mode"]);
+const fetchAudio = async (text, storage) => {
   if (!storage.apiKey) {
     audio = new Audio(chrome.runtime.getURL("media/error-no-api-key.mp3"));
     audio.play();
@@ -75,6 +74,12 @@ const fetchAudio = async (text) => {
 
 async function onClickSpeakButton() {
   setButtonSpinning();
+  const storage = await readStorage([
+    "apiKey",
+    "selectedVoiceId",
+    "mode",
+    "speed",
+  ]);
 
   // If audio is already playing, stop it
   if (audio) {
@@ -84,11 +89,16 @@ async function onClickSpeakButton() {
     return;
   }
   try {
-    const response = await fetchAudio(window.getSelection().toString());
+    const response = await fetchAudio(
+      window.getSelection().toString(),
+      storage
+    );
     if (response.status && response.status === 200) {
       const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       audio = new Audio(url);
+      const playbackRate = storage.speed ? storage.speed : 1;
+      audio.playbackRate = playbackRate;
       audio.play();
       setButtonStop();
       audio.onended = function () {

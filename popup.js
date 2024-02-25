@@ -32,6 +32,11 @@ const setSettingsScreen = () => {
   welcome.style.display = "none";
 };
 
+const setSpeedValue = (value) => {
+  document.getElementById("speedInput").value = value;
+  document.getElementById("speedValue").textContent = value + "x";
+};
+
 const renderSettings = async (storage) => {
   if (!storage)
     storage = await readStorage([
@@ -39,6 +44,7 @@ const renderSettings = async (storage) => {
       "selectedVoiceId",
       "mode",
       "voices",
+      "speed",
     ]);
   if (!storage.apiKey) {
     setWelcomeScreen();
@@ -57,6 +63,9 @@ const renderSettings = async (storage) => {
     await setStorageItem("mode", defaultMode);
   }
   document.getElementById("mode").value = storage.mode;
+
+  const speedValue = storage.speed ? storage.speed : 1;
+  setSpeedValue(speedValue);
 };
 
 const populateVoices = async () => {
@@ -134,6 +143,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     "selectedVoiceId",
     "mode",
     "voices",
+    "speed",
   ]);
   if (storage.apiKey) {
     renderSettings(storage);
@@ -185,6 +195,12 @@ document.getElementById("setApiKey").addEventListener("click", async () => {
 document.getElementById("mode").addEventListener("change", async () => {
   const mode = document.getElementById("mode").value;
   await setStorageItem("mode", mode);
+});
+
+document.getElementById("speedInput").addEventListener("input", async (e) => {
+  const value = document.getElementById("speedInput").value;
+  setSpeedValue(value);
+  await setStorageItem("speed", value);
 });
 
 document.getElementById("clearStorage").addEventListener("click", function () {
