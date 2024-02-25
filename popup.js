@@ -89,7 +89,6 @@ const setAPIKey = async (apiKey) => {
     },
   });
   if (response.ok) {
-    console.log(response);
     await setStorageItem("apiKey", apiKey);
   } else {
     throw new Error("API request failed");
