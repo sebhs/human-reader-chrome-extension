@@ -43,7 +43,8 @@ const readStorage = async (keys) => {
   });
 };
 
-const fetchResponse = async (storage) => {
+const fetchResponse = async () => {
+  const storage = await readStorage(["apiKey", "selectedVoiceId", "mode"]);
   const selectedVoiceId = storage.selectedVoiceId
     ? storage.selectedVoiceId
     : "21m00Tcm4TlvDq8ikWAM"; //fallback Voice ID
@@ -87,7 +88,8 @@ const handleMissingApiKey = () => {
   }, 100);
 };
 let sourceOpenEventAdded = false;
-const streamAudio = async (storage) => {
+const streamAudio = async () => {
+  const storage = await readStorage(["apiKey", "speed"]);
   if (!storage.apiKey) {
     handleMissingApiKey();
     return;
@@ -134,7 +136,7 @@ const streamAudio = async (storage) => {
 
       const fetchAndAppendChunks = async () => {
         try {
-          const response = await fetchResponse(storage);
+          const response = await fetchResponse();
 
           if (response.status === 401) {
             alert("Unauthorized. Please set your API key.");
@@ -179,15 +181,9 @@ async function onClickTtsButton() {
     return;
   }
   setButtonState("loading");
-  const storage = await readStorage([
-    "apiKey",
-    "selectedVoiceId",
-    "mode",
-    "speed",
-  ]);
   try {
     setTextToPlay(window.getSelection().toString());
-    await streamAudio(storage);
+    await streamAudio();
   } catch (error) {
     console.error(error);
     setButtonState("play");
