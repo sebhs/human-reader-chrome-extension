@@ -142,7 +142,6 @@ document.addEventListener("DOMContentLoaded", async () => {
 const select = document.getElementById("voices");
 select.addEventListener("change", async (event) => {
   const selectedVoiceId = event.target.value;
-  console.log(selectedVoiceId);
   await setStorageItem("selectedVoiceId", selectedVoiceId);
 });
 
