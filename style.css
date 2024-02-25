@@ -1,4 +1,4 @@
-#speakButton {
+#ttsButton {
   all: initial;
   border-radius: 50%;
   position: absolute;
@@ -6,4 +6,5 @@
   width: 20px;
   height: 20px;
   background-color: #fff;
+  overflow: hidden;
 }

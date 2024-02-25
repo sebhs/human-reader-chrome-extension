@@ -25,38 +25,40 @@ const setWelcomeScreen = () => {
   welcome.style.display = "block";
 };
 
-const setSettingsScreen = () => {
+const setSettingsScreen = async () => {
   const settings = document.getElementById("settings");
   const welcome = document.getElementById("welcome");
   settings.style.display = "block";
   welcome.style.display = "none";
+
+  //assumes storage is already set
+  storage = await readStorage(["mode", "speed"]);
+  document.getElementById("mode").value = storage.mode;
+  setSpeedValue(storage.speed || 1);
 };
 
-const renderSettings = async (storage) => {
-  if (!storage)
-    storage = await readStorage([
-      "apiKey",
-      "selectedVoiceId",
-      "mode",
-      "voices",
-    ]);
-  if (!storage.apiKey) {
-    setWelcomeScreen();
-    chrome.storage.local.clear();
-    return;
-  }
-  setSettingsScreen();
-  if (!storage.selectedVoiceId || !storage.voices) {
-    await fetchVoices();
-    await setStorageItem("selectedVoiceId", storage.voices[0].id);
-    document.getElementById("selectedVoiceId").value = storage.voices[0].id;
-  }
-  if (!storage.mode) {
-    const defaultMode = "englishfast";
-    document.getElementById("mode").value = defaultMode;
-    await setStorageItem("mode", defaultMode);
-  }
-  document.getElementById("mode").value = storage.mode;
+const setSpeedValue = (value) => {
+  document.getElementById("speedInput").value = value;
+  document.getElementById("speedValue").textContent = value + "x";
+};
+
+const loadStartupData = async () => {
+  const voices = await fetchVoices();
+  storage = await readStorage([
+    "apiKey",
+    "selectedVoiceId",
+    "mode",
+    "voices",
+    "speed",
+  ]);
+  const mode = storage.mode || "englishfast";
+  document.getElementById("mode").value = mode;
+  const speedValue = storage.speed || 1;
+  setSpeedValue(speedValue);
+
+  const selectedVoiceId = storage.selectedVoiceId || voices[0].id;
+  setStorageItem("selectedVoiceId", selectedVoiceId);
+  setStorageItem("mode", mode);
 };
 
 const populateVoices = async () => {
@@ -87,7 +89,6 @@ const setAPIKey = async (apiKey) => {
     },
   });
   if (response.ok) {
-    console.log(response);
     await setStorageItem("apiKey", apiKey);
   } else {
     throw new Error("API request failed");
@@ -107,7 +108,7 @@ const fetchVoices = async () => {
     if (!response.ok) {
       if (response.status === 401) {
         chrome.storage.local.clear();
-        setWelcomeScreen();
+        throw new Error("Invalid API key");
       } else {
         console.error(`HTTP error! status: ${response.status}`);
       }
@@ -122,21 +123,17 @@ const fetchVoices = async () => {
         });
         await setStorageItem("voices", voices);
         await populateVoices();
+        return voices;
       }
     }
   }
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
-  populateVoices();
-  const storage = await readStorage([
-    "apiKey",
-    "selectedVoiceId",
-    "mode",
-    "voices",
-  ]);
+  const storage = await readStorage(["apiKey"]);
   if (storage.apiKey) {
-    renderSettings(storage);
+    populateVoices();
+    setSettingsScreen();
   } else {
     setWelcomeScreen();
   }
@@ -145,24 +142,8 @@ document.addEventListener("DOMContentLoaded", async () => {
 const select = document.getElementById("voices");
 select.addEventListener("change", async (event) => {
   const selectedVoiceId = event.target.value;
+  console.log(selectedVoiceId);
   await setStorageItem("selectedVoiceId", selectedVoiceId);
-});
-
-document.getElementById("syncVoices").addEventListener("click", async () => {
-  const button = document.getElementById("syncVoices");
-  button.textContent = "...";
-  try {
-    await fetchVoices();
-    button.innerHTML = "&#10003;"; //checkmark
-    setTimeout(function () {
-      button.textContent = "Sync";
-    }, 1000);
-  } catch {
-    button.textContent = "Error";
-    setTimeout(function () {
-      button.textContent = "Sync";
-    }, 1000);
-  }
 });
 
 document.getElementById("setApiKey").addEventListener("click", async () => {
@@ -171,12 +152,14 @@ document.getElementById("setApiKey").addEventListener("click", async () => {
   button.textContent = "...";
   try {
     await setAPIKey(inputValue);
-    await fetchVoices();
+    await loadStartupData();
+    await setSettingsScreen();
     button.textContent = "Set";
-    renderSettings();
   } catch (error) {
-    setWelcomeScreen();
+    console.log(error);
+    chrome.storage.local.clear();
     button.textContent = "Set";
+    setWelcomeScreen();
     alert("Invalid API key, please try again.");
     console.error(error);
   }
@@ -185,6 +168,12 @@ document.getElementById("setApiKey").addEventListener("click", async () => {
 document.getElementById("mode").addEventListener("change", async () => {
   const mode = document.getElementById("mode").value;
   await setStorageItem("mode", mode);
+});
+
+document.getElementById("speedInput").addEventListener("input", async (e) => {
+  const value = document.getElementById("speedInput").value;
+  setSpeedValue(value);
+  await setStorageItem("speed", value);
 });
 
 document.getElementById("clearStorage").addEventListener("click", function () {

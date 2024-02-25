@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Human Reader, powered by ElevenLabs",
-  "version": "1.1",
+  "version": "1.2",
   "description": "Listen to any text in the web in a human voice. A simple extension powered by ElevenLabs to convert any text to speech.",
   "icons": {
     "16": "images/icon16.png",
@@ -28,8 +28,8 @@
     {
       "resources": [
         "images/play.svg",
-        "images/stop.svg",
         "images/spinner.svg",
+        "images/speak.svg",
         "media/error-no-api-key.mp3"
       ],
       "matches": ["<all_urls>"]
