@@ -1,26 +1,39 @@
-const speakButton = document.createElement("img");
-speakButton.id = "speakButton";
-speakButton.alt = "Speak button";
-speakButton.setAttribute("role", "button");
-speakButton.src = chrome.runtime.getURL("images/play.svg");
-speakButton.style.display = "none";
-document.body.appendChild(speakButton);
+const codec = "audio/mpeg";
+const maxBufferDuration = 60; // Maximum buffer duration in seconds
+let streamingCompleted = true;
 
-const setButtonSpinning = () => {
-  speakButton.src = chrome.runtime.getURL("images/spinner.svg");
-  speakButton.disabled = true;
+// Create a new MediaSource and Audio element
+const mediaSource = new MediaSource();
+const audioElement = new Audio();
+
+const ttsButton = document.createElement("img");
+ttsButton.id = "ttsButton";
+ttsButton.alt = "Text to speech button";
+ttsButton.setAttribute("role", "button");
+ttsButton.src = chrome.runtime.getURL("images/play.svg");
+ttsButton.style.display = "none";
+document.body.appendChild(ttsButton);
+
+let buttonState = "play";
+
+const setButtonState = (state) => {
+  if (state === "loading") {
+    buttonState = "loading";
+    ttsButton.src = chrome.runtime.getURL("images/spinner.svg");
+    ttsButton.disabled = true;
+  } else if (state === "play") {
+    buttonState = "play";
+    ttsButton.src = chrome.runtime.getURL("images/play.svg");
+    ttsButton.disabled = false;
+    audioElement.pause();
+  } else if (state === "speak") {
+    buttonState = "speak";
+    ttsButton.src = chrome.runtime.getURL("images/speak.svg");
+    ttsButton.disabled = true;
+  }
 };
 
-const setButtonPlay = () => {
-  speakButton.src = chrome.runtime.getURL("images/play.svg");
-  speakButton.disabled = false;
-};
-
-const setButtonStop = () => {
-  speakButton.src = chrome.runtime.getURL("images/stop.svg");
-  speakButton.disabled = false;
-};
-
+//FIXME:
 let audio = null;
 
 const readStorage = async (keys) => {
@@ -31,92 +44,177 @@ const readStorage = async (keys) => {
   });
 };
 
-const fetchAudio = async (text, storage) => {
-  if (!storage.apiKey) {
-    audio = new Audio(chrome.runtime.getURL("media/error-no-api-key.mp3"));
-    audio.play();
-    //since alert() is blocking, timeout is needed so audio plays while alert is visible.
-    setTimeout(() => {
-      alert(
-        "Please set your Elevenlabs API key in the extension settings to use Human Reader."
-      );
-      chrome.storage.local.clear();
-      setButtonPlay();
-    }, 100);
-  } else {
-    const selectedVoiceId = storage.selectedVoiceId
-      ? storage.selectedVoiceId
-      : "21m00Tcm4TlvDq8ikWAM"; //fallback Voice ID
-    const mode = storage.mode ? storage.mode : "englishfast";
-    const model_id =
-      mode === "multilingual" ? "eleven_multilingual_v2" : "eleven_turbo_v2";
-    const response = await fetch(
-      `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}`,
-      {
-        method: "POST",
-        headers: {
-          "xi-api-key": storage.apiKey,
-          "Content-Type": "application/json",
+const fetchResponse = async (text, storage) => {
+  const selectedVoiceId = storage.selectedVoiceId
+    ? storage.selectedVoiceId
+    : "21m00Tcm4TlvDq8ikWAM"; //fallback Voice ID
+  const mode = storage.mode ? storage.mode : "englishfast";
+  const model_id =
+    mode === "multilingual" ? "eleven_multilingual_v2" : "eleven_turbo_v2";
+
+  const response = await fetch(
+    `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}/stream`,
+    {
+      method: "POST",
+      headers: {
+        Accept: codec,
+        "xi-api-key": storage.apiKey,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model_id: model_id,
+        text: text,
+        voice_settings: {
+          similarity_boost: 0.5,
+          stability: 0.5,
         },
-        body: JSON.stringify({
-          model_id: model_id,
-          text: text,
-          voice_settings: {
-            similarity_boost: 0.5,
-            stability: 0.5,
-          },
-        }),
-      }
+      }),
+    }
+  );
+  return response;
+};
+
+const handleMissingApiKey = () => {
+  //FIXME: use one Audio
+  const audio = new Audio(chrome.runtime.getURL("media/error-no-api-key.mp3"));
+  audio.play();
+  //since alert() is blocking, timeout is needed so audio plays while alert is visible.
+  setTimeout(() => {
+    alert(
+      "Please set your Elevenlabs API key in the extension settings to use Human Reader."
     );
-    return response;
+    chrome.storage.local.clear();
+    setButtonState("play");
+  }, 100);
+};
+let sourceOpenEventAdded = false;
+const streamAudio = async (text, storage) => {
+  if (!storage.apiKey) {
+    handleMissingApiKey();
+    return;
+  }
+  streamingCompleted = false;
+  //FIXME: handle playback speed
+  audioElement.src = URL.createObjectURL(mediaSource);
+
+  audioElement.play();
+  if (!sourceOpenEventAdded) {
+    sourceOpenEventAdded = true;
+    mediaSource.addEventListener("sourceopen", () => {
+      console.log("sourceopen event fired", mediaSource.readyState);
+      const sourceBuffer = mediaSource.addSourceBuffer(codec);
+
+      let isAppending = false;
+      let appendQueue = [];
+
+      const processAppendQueue = () => {
+        if (!isAppending && appendQueue.length > 0) {
+          isAppending = true;
+          const chunk = appendQueue.shift();
+          chunk && sourceBuffer.appendBuffer(chunk);
+        }
+      };
+
+      sourceBuffer.addEventListener("updateend", () => {
+        isAppending = false;
+        processAppendQueue();
+      });
+
+      const appendChunk = (chunk) => {
+        console.log("appendChunk");
+        setButtonState("speak");
+        appendQueue.push(chunk);
+        processAppendQueue();
+
+        while (
+          mediaSource.duration - mediaSource.currentTime >
+          maxBufferDuration
+        ) {
+          const removeEnd = mediaSource.currentTime - maxBufferDuration;
+          sourceBuffer.remove(0, removeEnd);
+        }
+      };
+
+      const fetchAndAppendChunks = async () => {
+        console.log("fetchAndAppendChunks");
+        try {
+          const response = await fetchResponse(text, storage);
+          console.log("response", response);
+
+          if (response.status === 401) {
+            alert("Unauthorized. Please set your API key.");
+            chrome.storage.local.clear();
+            setButtonState("play");
+            return;
+          }
+
+          if (!response.body) {
+            const errorMessage = "Error fetching audio, please try again";
+            alert(errorMessage);
+            console.error(errorMessage);
+            setButtonState("play");
+            return;
+          }
+
+          const reader = response.body.getReader();
+
+          while (true) {
+            const { done, value } = await reader.read();
+
+            if (done) {
+              // Signal the end of the stream
+              console.log("done");
+              streamingCompleted = true;
+              break;
+            }
+
+            appendChunk(value.buffer);
+          }
+        } catch (error) {
+          setButtonState("play");
+          console.error("Error fetching and appending chunks:", error);
+        }
+      };
+      fetchAndAppendChunks();
+    });
   }
 };
 
-async function onClickSpeakButton() {
-  setButtonSpinning();
+async function onClickTtsButton() {
+  if (buttonState === "loading" || buttonState === "speak") {
+    return;
+  }
+  setButtonState("loading");
   const storage = await readStorage([
     "apiKey",
     "selectedVoiceId",
     "mode",
     "speed",
   ]);
-
-  // If audio is already playing, stop it
-  if (audio) {
-    audio.pause();
-    audio = null;
-    setButtonPlay();
-    return;
-  }
   try {
-    const response = await fetchAudio(
-      window.getSelection().toString(),
-      storage
-    );
-    if (response.status && response.status === 200) {
-      const blob = await response.blob();
-      const url = URL.createObjectURL(blob);
-      audio = new Audio(url);
-      const playbackRate = storage.speed ? storage.speed : 1;
-      audio.playbackRate = playbackRate;
-      audio.play();
-      setButtonStop();
-      audio.onended = function () {
-        audio = null;
-        setButtonPlay();
-      };
-    } else if (response.status === 401) {
-      alert("Unauthorized. Please set your API key.");
-      chrome.storage.local.clear();
-      setButtonPlay();
-    } else {
-      setButtonPlay();
-    }
+    await streamAudio(window.getSelection().toString(), storage);
   } catch (error) {
     console.error(error);
-    setButtonPlay();
+    setButtonState("play");
   }
 }
+
+audioElement.addEventListener("timeupdate", () => {
+  console.log("timeupdate");
+  // This is a hacky way to deterimne that the audio has ended. I couldn't find a better way to do it.
+  // If you have an idea, please let me know.
+  const playbackEndThreshold = 0.5;
+  if (streamingCompleted) {
+    const bufferEndTime = audioElement.buffered.end(
+      audioElement.buffered.length - 1
+    );
+    const timeLeft = bufferEndTime - audioElement.currentTime;
+
+    if (timeLeft <= playbackEndThreshold) {
+      setButtonState("play");
+    }
+  }
+});
 
 document.addEventListener("selectionchange", function () {
   const selection = window.getSelection();
@@ -124,17 +222,17 @@ document.addEventListener("selectionchange", function () {
     const range = selection.getRangeAt(0);
     const rects = range.getClientRects();
     const lastRect = rects[rects.length - 1];
-    speakButton.style.left = window.scrollX + lastRect.right + "px";
-    speakButton.style.top = window.scrollY + lastRect.bottom + "px";
-    speakButton.style.display = "block";
+    ttsButton.style.left = window.scrollX + lastRect.right + "px";
+    ttsButton.style.top = window.scrollY + lastRect.bottom + "px";
+    ttsButton.style.display = "block";
   } else {
-    speakButton.style.display = "none";
+    ttsButton.style.display = "none";
   }
-  speakButton.onclick = onClickSpeakButton;
+  ttsButton.onclick = onClickTtsButton;
 });
 
-speakButton.addEventListener("keydown", function (e) {
+ttsButton.addEventListener("keydown", function (e) {
   if (e.key === "Enter") {
-    onClickSpeakButton();
+    onClickTtsButton();
   }
 });
