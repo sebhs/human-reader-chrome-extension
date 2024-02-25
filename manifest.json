@@ -28,8 +28,8 @@
     {
       "resources": [
         "images/play.svg",
-        "images/stop.svg",
         "images/spinner.svg",
+        "images/speak.svg",
         "media/error-no-api-key.mp3"
       ],
       "matches": ["<all_urls>"]
