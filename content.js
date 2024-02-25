@@ -1,8 +1,6 @@
 const codec = "audio/mpeg";
-const maxBufferDuration = 60; // Maximum buffer duration in seconds
+const maxBufferDuration = 90;
 let streamingCompleted = true;
-
-// Create a new MediaSource and Audio element
 const mediaSource = new MediaSource();
 const audioElement = new Audio();
 
@@ -102,7 +100,6 @@ const streamAudio = async (storage) => {
   if (!sourceOpenEventAdded) {
     sourceOpenEventAdded = true;
     mediaSource.addEventListener("sourceopen", () => {
-      console.log("sourceopen event fired", mediaSource.readyState);
       const sourceBuffer = mediaSource.addSourceBuffer(codec);
 
       let isAppending = false;
@@ -122,7 +119,6 @@ const streamAudio = async (storage) => {
       });
 
       const appendChunk = (chunk) => {
-        console.log("appendChunk");
         setButtonState("speak");
         appendQueue.push(chunk);
         processAppendQueue();
@@ -137,10 +133,8 @@ const streamAudio = async (storage) => {
       };
 
       const fetchAndAppendChunks = async () => {
-        console.log("fetchAndAppendChunks");
         try {
           const response = await fetchResponse(storage);
-          console.log("response", response);
 
           if (response.status === 401) {
             alert("Unauthorized. Please set your API key.");
@@ -164,7 +158,6 @@ const streamAudio = async (storage) => {
 
             if (done) {
               // Signal the end of the stream
-              console.log("done");
               streamingCompleted = true;
               break;
             }
@@ -202,7 +195,6 @@ async function onClickTtsButton() {
 }
 
 audioElement.addEventListener("timeupdate", () => {
-  console.log("timeupdate");
   // This is a hacky way to deterimne that the audio has ended. I couldn't find a better way to do it.
   // If you have an idea, please let me know.
   const playbackEndThreshold = 0.5;
