@@ -10,7 +10,7 @@ Check out the demo here:
 
 ## **Change Log:**
 
-### Version 1.2 - In review - [PR](https://github.com/sebhs/human-reader-chrome-extension/pull/8)
+### Version 1.2 - Stable - [PR](https://github.com/sebhs/human-reader-chrome-extension/pull/8)
 
 New features:
 
@@ -18,7 +18,7 @@ New features:
 - Speed slider - set the playback speed from 0.5x to 2.5x
 - Much lower latency - using the stream endpoint to improve performance and lower latency
 
-### Version 1.1 - Stable
+### Version 1.1 - Old
 
 New Features
 
