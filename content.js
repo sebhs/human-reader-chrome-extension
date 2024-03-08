@@ -226,3 +226,11 @@ ttsButton.addEventListener("keydown", function (e) {
     onClickTtsButton();
   }
 });
+
+// Receive sent message from background worker and trigger readOutLoud action
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "readOutLoud") {
+    onClickTtsButton();
+  }
+  return true
+});
