@@ -80,9 +80,7 @@ const handleMissingApiKey = () => {
   audio.play();
   //since alert() is blocking, timeout is needed so audio plays while alert is visible.
   setTimeout(() => {
-    alert(
-      "Please set your Elevenlabs API key in the extension settings to use Human Reader."
-    );
+    showToast("error", "Please set your API key in the options page.");
     chrome.storage.local.clear();
     setButtonState("play");
   }, 100);
@@ -139,7 +137,7 @@ const streamAudio = async () => {
           const response = await fetchResponse();
 
           if (response.status === 401) {
-            alert("Unauthorized. Please set your API key.");
+            showToast("error", "Unauthorized. Please set your API key.");
             chrome.storage.local.clear();
             setButtonState("play");
             return;
@@ -147,7 +145,7 @@ const streamAudio = async () => {
 
           if (!response.body) {
             const errorMessage = "Error fetching audio, please try again";
-            alert(errorMessage);
+            showToast("error", errorMessage);
             console.error(errorMessage);
             setButtonState("play");
             return;
@@ -182,6 +180,7 @@ async function onClickTtsButton() {
   }
   setButtonState("loading");
   try {
+    showToast("success", "Text narration started");
     setTextToPlay(window.getSelection().toString());
     await streamAudio();
   } catch (error) {
@@ -240,3 +239,46 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   return true
 });
+
+function injectToastMessage() {
+  const toastHTML = `<div id="my-toast" style="display: none;"><p id="my-toast-message"></p></div>`;
+  const toastCSS = `
+  #my-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 8px;
+    background-color: #444;
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    border-radius: 5px;
+  }
+`;
+  const style = document.createElement("style");
+  style.textContent = toastCSS;
+  document.head.append(style);
+  document.body.insertAdjacentHTML("beforeend", toastHTML);
+}
+
+function showToast(type,message, duration = 3000) {
+  let isShowing = true;
+  let toastColor = "#444";
+  if (type === "error") {
+    toastColor = "red";
+  }
+  if (type === "success") {
+    toastColor = "#2b9f0f";
+  }
+  const toast = document.getElementById('my-toast');
+  const toastMessage = document.getElementById('my-toast-message');
+  toastMessage.textContent = message;
+  toast.style.display = 'block';
+  toast.style.backgroundColor = toastColor;
+  setTimeout(() => {
+    toast.style.display = 'none';
+    isShowing = false;
+  }, duration);
+}
+
+injectToastMessage();
