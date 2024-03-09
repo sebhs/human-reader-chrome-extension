@@ -78,12 +78,9 @@ const handleMissingApiKey = () => {
   setButtonState("speak");
   const audio = new Audio(chrome.runtime.getURL("media/error-no-api-key.mp3"));
   audio.play();
-  //since alert() is blocking, timeout is needed so audio plays while alert is visible.
-  setTimeout(() => {
-    showToast("error", "Please set your API key in the options page.");
-    chrome.storage.local.clear();
-    setButtonState("play");
-  }, 100);
+  showToast("error", "Please set your API key in the options page.", 6000);
+  chrome.storage.local.clear();
+  setButtonState("play");
 };
 let sourceOpenEventAdded = false;
 const streamAudio = async () => {
