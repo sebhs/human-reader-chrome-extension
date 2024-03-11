@@ -226,3 +226,35 @@ ttsButton.addEventListener("keydown", function (e) {
     onClickTtsButton();
   }
 });
+
+// Variable to track the playback state
+let isPlaying = false;
+
+// Function to update the playback state and toggle the button icon accordingly
+const setPlayingState = (playing) => {
+  isPlaying = playing;
+  ttsButton.src = chrome.runtime.getURL(playing ? "images/speak.svg" : "images/play.svg");
+};
+
+// Function to toggle playback when the button is clicked
+const togglePlayback = () => {
+  if (isPlaying) {
+    audioElement.pause();
+  } else {
+    audioElement.play();
+  }
+  setPlayingState(!isPlaying);
+};
+
+
+ttsButton.addEventListener("click", togglePlayback);
+
+audioElement.addEventListener("ended", () => {
+  setPlayingState(false);
+});
+
+audioElement.addEventListener("timeupdate", () => {
+  if (audioElement.paused) {
+    setPlayingState(false);
+  }
+});
