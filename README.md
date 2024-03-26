@@ -8,7 +8,10 @@ Check out the demo here:
 
 [![Thumbnail for video](images/thumbnail.png)](https://www.youtube.com/watch?v=p7fsviz4Fm8)
 
-## **Change Log:**
+## **Changelog:**
+
+### Version 1.3 - in progress
+
 
 ### Version 1.2 - Stable - [PR](https://github.com/sebhs/human-reader-chrome-extension/pull/8)
 
