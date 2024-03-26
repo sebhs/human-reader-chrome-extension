@@ -10,7 +10,9 @@ Check out the demo here:
 
 ## **Changelog:**
 
-### Version 1.3 - in progress
+### Version 1.3 - in review [PR](https://github.com/sebhs/human-reader-chrome-extension/pull/24)
+New features: 
+- Start reading text from context menu (helpful if play button doesn't show up). Implemented by @Protonosgit. Thank you :) 
 
 
 ### Version 1.2 - Stable - [PR](https://github.com/sebhs/human-reader-chrome-extension/pull/8)
