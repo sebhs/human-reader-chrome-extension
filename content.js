@@ -208,6 +208,11 @@ audioElement.addEventListener("timeupdate", () => {
 
 document.addEventListener("selectionchange", function () {
   const selection = window.getSelection();
+
+  // Detect if input element was selected
+  if (selection.anchorNode.tagName === "FORM" || selection.focusNode.tagName === "INPUT") {
+    return;
+  }
   if (!selection.isCollapsed) {
     const range = selection.getRangeAt(0);
     const rects = range.getClientRects();
@@ -225,4 +230,13 @@ ttsButton.addEventListener("keydown", function (e) {
   if (e.key === "Enter") {
     onClickTtsButton();
   }
+});
+
+
+// Receive sent message from background worker and trigger readOutLoud action
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "readOutLoud") {
+    onClickTtsButton();
+  }
+  return true
 });

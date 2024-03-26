@@ -35,5 +35,12 @@
       "matches": ["<all_urls>"]
     }
   ],
-  "permissions": ["storage"]
+  "permissions": ["storage","contextMenus"],
+
+  "background": {
+    "service_worker": "background.js",
+    "persistent": false
+
+}
+  
 }
