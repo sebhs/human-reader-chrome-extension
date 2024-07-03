@@ -21,15 +21,19 @@ const readStorage = async (keys) => {
 const setWelcomeScreen = () => {
   const settings = document.getElementById("settings");
   const welcome = document.getElementById("welcome");
+  const info = document.getElementById("info");
   settings.style.display = "none";
   welcome.style.display = "block";
+  info.style.display = "none";
 };
 
 const setSettingsScreen = async () => {
   const settings = document.getElementById("settings");
   const welcome = document.getElementById("welcome");
+  const info = document.getElementById("info");
   settings.style.display = "block";
   welcome.style.display = "none";
+  info.style.display = "block";
 
   //assumes storage is already set
   storage = await readStorage(["mode", "speed"]);
