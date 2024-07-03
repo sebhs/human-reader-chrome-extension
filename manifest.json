@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Human Reader, powered by ElevenLabs",
-  "version": "1.3",
+  "version": "1.4",
   "description": "Listen to any text in the web in a human voice. A simple extension powered by ElevenLabs to convert any text to speech.",
   "icons": {
     "16": "images/icon16.png",
