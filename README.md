@@ -10,13 +10,13 @@ Check out the demo here:
 
 ## **Changelog:**
 
-### Version 1.3 - in review [PR](https://github.com/sebhs/human-reader-chrome-extension/pull/24)
+### Version 1.3 - stable -  [PR](https://github.com/sebhs/human-reader-chrome-extension/pull/24)
 New features: 
 - Start reading text from context menu (helpful if play button doesn't show up). Implemented by @Protonosgit. Thank you :) 
 - Add MIT license
 
 
-### Version 1.2 - Stable - [PR](https://github.com/sebhs/human-reader-chrome-extension/pull/8)
+### Version 1.2 - old - [PR](https://github.com/sebhs/human-reader-chrome-extension/pull/8)
 
 New features:
 
@@ -24,14 +24,14 @@ New features:
 - Speed slider - set the playback speed from 0.5x to 2.5x
 - Much lower latency - using the stream endpoint to improve performance and lower latency
 
-### Version 1.1 - Old
+### Version 1.1 - old
 
 New Features
 
 - Improved onboarding experience, making it easier to get started
 - Synchronization with Elevenlabs voice library
 
-### Version 1.0 - Old
+### Version 1.0 - old
 
 Initial release includes features:
 
