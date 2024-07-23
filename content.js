@@ -139,8 +139,14 @@ const streamAudio = async () => {
           const response = await fetchResponse();
 
           if (response.status === 401) {
-            alert("Unauthorized. Please set your API key.");
-            chrome.storage.local.clear();
+            const errorBody = await response.json();
+            // console.log(errorBody);
+            if (errorBody.detail.status === "detected_unusual_activity") {
+              alert(`MESSAGE FROM ELEVENLABS: ${errorBody.detail.message}`);
+            } else {
+              alert("Unauthorized. Please set your API key again.");
+              chrome.storage.local.clear();
+            }
             setButtonState("play");
             return;
           }
