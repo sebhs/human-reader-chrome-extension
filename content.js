@@ -140,7 +140,6 @@ const streamAudio = async () => {
 
           if (response.status === 401) {
             const errorBody = await response.json();
-            // console.log(errorBody);
             if (errorBody.detail.status === "detected_unusual_activity") {
               alert(`MESSAGE FROM ELEVENLABS: ${errorBody.detail.message}`);
             } else {
