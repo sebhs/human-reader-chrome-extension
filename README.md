@@ -37,7 +37,7 @@ New Features
 - Improved onboarding experience, making it easier to get started
 - Synchronization with Elevenlabs voice library
 
-### Version 1.0 -
+### Version 1.0
 
 Initial release includes features:
 

@@ -148,7 +148,7 @@ const streamAudio = async () => {
       });
 
       const appendChunk = (chunk) => {
-        if (isStopped) return; // Check if the audio has been stopped
+        if (isStopped) return;
 
         setButtonState("speak");
         appendQueue.push(chunk);
@@ -245,7 +245,6 @@ audioElement.addEventListener("timeupdate", () => {
 document.addEventListener("selectionchange", function () {
   const selection = window.getSelection();
 
-  // Check if selection is not null
   if (!selection.anchorNode || !selection.focusNode) {
     return;
   }
