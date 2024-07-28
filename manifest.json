@@ -30,6 +30,7 @@
         "images/play.svg",
         "images/spinner.svg",
         "images/speak.svg",
+        "images/stop.svg",
         "media/error-no-api-key.mp3"
       ],
       "matches": ["<all_urls>"]
