@@ -167,7 +167,8 @@ const streamAudio = async () => {
 
           if (response.status === 401) {
             const errorBody = await response.json();
-            if (errorBody.detail.status === "detected_unusual_activity") {
+            const errorStatus =  errorBody.detail.status
+            if (errorStatus === "detected_unusual_activity" || errorStatus === "quota_exceeded") {
               alert(`MESSAGE FROM ELEVENLABS: ${errorBody.detail.message}`);
             } else {
               alert("Unauthorized. Please set your API key again.");
