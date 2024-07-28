@@ -48,9 +48,11 @@ const fetchResponse = async () => {
   const selectedVoiceId = storage.selectedVoiceId
     ? storage.selectedVoiceId
     : "21m00Tcm4TlvDq8ikWAM"; //fallback Voice ID
-  const mode = storage.mode ? storage.mode : "englishfast";
+  const mode = storage.mode
   const model_id =
-    mode === "multilingual" ? "eleven_multilingual_v2" : "eleven_turbo_v2";
+    (mode === "englishfast" || mode === "eleven_turbo_v2") ? "eleven_turbo_v2" :
+      (mode === "multilingual" || mode === "eleven_multilingual_v2") ? "eleven_multilingual_v2" :
+        "eleven_turbo_v2_5";
 
   const response = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}/stream`,

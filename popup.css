@@ -47,6 +47,15 @@ a:visited {
   align-items: center;
   padding: 20px;
 }
+
+.settingsItemNoPadding{
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-left:20px;
+  padding-right:20px
+}
+
 label {
   white-space: nowrap;
 }
