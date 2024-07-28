@@ -21,13 +21,19 @@
         <label for="voices">Voice:</label>
         <select id="voices"></select>
       </div>
-      <div class="settingsItem">
-        <label for="mode">Mode:</label>
+      <div class="settingsItemNoPadding">
+        <label for="mode">Model:</label>
         <select id="mode">
-          <option value="englishfast">Only English, but faster</option>
-          <option value="multilingual">Multilingual, but slower</option>
+          <option value="eleven_turbo_v2">Turbo v2</option>
+          <option value="eleven_turbo_v2_5">Turbo v2.5</option>
+          <option value="eleven_multilingual_v2">Multilingual v2</option>
         </select>
       </div>
+      <div class="settingsItemNoPadding">
+        <p>
+          Read <a href="https://help.elevenlabs.io/hc/en-us/articles/13313366263441-What-languages-do-you-support" target="_blank">here</a> for the differences in models and supported languages.
+        </p>
+        </div>
       <div class="settingsItem">
         <label for="speed">Speed:</label>
         <span id="speedValue">1x</span>
@@ -104,7 +110,7 @@
       </p>
 
       This Chrome extension was created by
-      <a href="https://twitter.com/sebselassie" target="_blank">Seb</a>. v1.5.
+      <a href="https://twitter.com/sebselassie" target="_blank">Seb</a>. v1.6.
     </div>
     <script src="popup.js"></script>
   </body>

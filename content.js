@@ -25,8 +25,8 @@ const setButtonState = (state) => {
     audioElement.pause();
   } else if (state === "speak") {
     buttonState = "speak";
-    ttsButton.src = chrome.runtime.getURL("images/speak.svg");
-    ttsButton.disabled = true;
+    ttsButton.src = chrome.runtime.getURL("images/stop.svg");
+    ttsButton.disabled = false;
   }
 };
 
@@ -48,9 +48,11 @@ const fetchResponse = async () => {
   const selectedVoiceId = storage.selectedVoiceId
     ? storage.selectedVoiceId
     : "21m00Tcm4TlvDq8ikWAM"; //fallback Voice ID
-  const mode = storage.mode ? storage.mode : "englishfast";
+  const mode = storage.mode
   const model_id =
-    mode === "multilingual" ? "eleven_multilingual_v2" : "eleven_turbo_v2";
+    (mode === "englishfast" || mode === "eleven_turbo_v2") ? "eleven_turbo_v2" :
+      (mode === "multilingual" || mode === "eleven_multilingual_v2") ? "eleven_multilingual_v2" :
+        "eleven_turbo_v2_5";
 
   const response = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}/stream`,
@@ -87,6 +89,26 @@ const handleMissingApiKey = () => {
     setButtonState("play");
   }, 100);
 };
+
+const clearBuffer = () => {
+  if (mediaSource.readyState === "open") {
+    const sourceBuffers = mediaSource.sourceBuffers;
+    for (let i = 0; i < sourceBuffers.length; i++) {
+      sourceBuffers[i].abort();
+      mediaSource.removeSourceBuffer(sourceBuffers[i]);
+    }
+  }
+  audioElement.pause();
+  audioElement.src = "";
+  streamingCompleted = true;
+};
+
+const stopAudio = () => {
+  isStopped = true;
+  clearBuffer();
+  setButtonState("play");
+};
+
 let sourceOpenEventAdded = false;
 const streamAudio = async () => {
   const storage = await readStorage(["apiKey", "speed"]);
@@ -94,6 +116,7 @@ const streamAudio = async () => {
     handleMissingApiKey();
     return;
   }
+  isStopped = false;
   streamingCompleted = false;
   audioElement.src = URL.createObjectURL(mediaSource);
   const playbackRate = storage.speed ? storage.speed : 1;
@@ -111,7 +134,11 @@ const streamAudio = async () => {
         if (!isAppending && appendQueue.length > 0) {
           isAppending = true;
           const chunk = appendQueue.shift();
-          chunk && sourceBuffer.appendBuffer(chunk);
+          if (chunk && mediaSource.sourceBuffers.length > 0) {
+            sourceBuffer.appendBuffer(chunk);
+          } else {
+            isAppending = false;
+          }
         }
       };
 
@@ -121,6 +148,8 @@ const streamAudio = async () => {
       });
 
       const appendChunk = (chunk) => {
+        if (isStopped) return;
+
         setButtonState("speak");
         appendQueue.push(chunk);
         processAppendQueue();
@@ -140,7 +169,8 @@ const streamAudio = async () => {
 
           if (response.status === 401) {
             const errorBody = await response.json();
-            if (errorBody.detail.status === "detected_unusual_activity") {
+            const errorStatus = errorBody.detail.status
+            if (errorStatus === "detected_unusual_activity" || errorStatus === "quota_exceeded") {
               alert(`MESSAGE FROM ELEVENLABS: ${errorBody.detail.message}`);
             } else {
               alert("Unauthorized. Please set your API key again.");
@@ -183,6 +213,7 @@ const streamAudio = async () => {
 
 async function onClickTtsButton() {
   if (buttonState === "loading" || buttonState === "speak") {
+    stopAudio();
     return;
   }
   setButtonState("loading");
@@ -200,19 +231,23 @@ audioElement.addEventListener("timeupdate", () => {
   // If you have an idea, please let me know.
   const playbackEndThreshold = 0.5;
   if (streamingCompleted) {
-    const bufferEndTime = audioElement.buffered.end(
-      audioElement.buffered.length - 1
-    );
-    const timeLeft = bufferEndTime - audioElement.currentTime;
+    if (audioElement.buffered.length > 0) {
+      const bufferEndTime = audioElement.buffered.end(audioElement.buffered.length - 1);
+      const timeLeft = bufferEndTime - audioElement.currentTime;
 
-    if (timeLeft <= playbackEndThreshold) {
-      setButtonState("play");
+      if (timeLeft <= playbackEndThreshold) {
+        setButtonState("play");
+      }
     }
   }
 });
 
 document.addEventListener("selectionchange", function () {
   const selection = window.getSelection();
+
+  if (!selection.anchorNode || !selection.focusNode) {
+    return;
+  }
 
   // Detect if input element was selected
   if (selection.anchorNode.tagName === "FORM" || selection.focusNode.tagName === "INPUT") {
@@ -236,7 +271,6 @@ ttsButton.addEventListener("keydown", function (e) {
     onClickTtsButton();
   }
 });
-
 
 // Receive sent message from background worker and trigger readOutLoud action
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

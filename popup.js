@@ -55,7 +55,7 @@ const loadStartupData = async () => {
     "voices",
     "speed",
   ]);
-  const mode = storage.mode || "englishfast";
+  const mode = storage.mode || "eleven_turbo_v2_5";
   document.getElementById("mode").value = mode;
   const speedValue = storage.speed || 1;
   setSpeedValue(speedValue);
