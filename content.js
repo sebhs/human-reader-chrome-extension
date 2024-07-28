@@ -26,12 +26,7 @@ const setButtonState = (state) => {
   } else if (state === "speak") {
     buttonState = "speak";
     ttsButton.src = chrome.runtime.getURL("images/stop.svg");
-    ttsButton.disabled = true;
-  } else if (state === "stop") {
-    buttonState = "stop";
-    ttsButton.src = chrome.runtime.getURL("images/stop.svg");
     ttsButton.disabled = false;
-    audioElement.pause();
   }
 };
 
@@ -107,6 +102,7 @@ const clearBuffer = () => {
 };
 
 const stopAudio = () => {
+  isStopped = true;
   clearBuffer();
   setButtonState("play");
 };
@@ -118,6 +114,7 @@ const streamAudio = async () => {
     handleMissingApiKey();
     return;
   }
+  isStopped = false;
   streamingCompleted = false;
   audioElement.src = URL.createObjectURL(mediaSource);
   const playbackRate = storage.speed ? storage.speed : 1;
@@ -149,6 +146,8 @@ const streamAudio = async () => {
       });
 
       const appendChunk = (chunk) => {
+        if (isStopped) return; // Check if the audio has been stopped
+
         setButtonState("speak");
         appendQueue.push(chunk);
         processAppendQueue();
