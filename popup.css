@@ -106,3 +106,8 @@ button:hover {
 #speedInput {
   width: 150px;
 }
+
+.shortcut {
+  font-family: monospace;
+  font-weight: bold;
+}
