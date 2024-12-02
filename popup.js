@@ -190,3 +190,16 @@ document.getElementById("clearStorage").addEventListener("click", function () {
     document.getElementById("apiKey").value = "";
   }
 });
+
+// Event listener to handle updating the voice list when the refresh button is clicked
+document
+  .getElementById("updateVoiceListButton")
+  .addEventListener("click", async () => {
+    try {
+      await fetchVoices();
+      alert("Voice list updated successfully.");
+    } catch (error) {
+      console.error("Error updating voice list:", error);
+      alert("Failed to update voice list. Please check your API key.");
+    }
+  });
