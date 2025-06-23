@@ -36,14 +36,20 @@ const setSettingsScreen = async () => {
   info.style.display = "block";
 
   //assumes storage is already set
-  storage = await readStorage(["mode", "speed"]);
+  storage = await readStorage(["mode", "speed", "volume"]);
   document.getElementById("mode").value = storage.mode;
   setSpeedValue(storage.speed || 1);
+  setVolumeValue(storage.volume || 100);
 };
 
 const setSpeedValue = (value) => {
   document.getElementById("speedInput").value = value;
   document.getElementById("speedValue").textContent = value + "x";
+};
+
+const setVolumeValue = (value) => {
+  document.getElementById("volumeInput").value = value;
+  document.getElementById("volumeValue").textContent = value + "%";
 };
 
 const loadStartupData = async () => {
@@ -54,11 +60,14 @@ const loadStartupData = async () => {
     "mode",
     "voices",
     "speed",
+    "volume",
   ]);
   const mode = storage.mode || "eleven_turbo_v2_5";
   document.getElementById("mode").value = mode;
   const speedValue = storage.speed || 1;
   setSpeedValue(speedValue);
+  const volumeValue = storage.volume || 100;
+  setVolumeValue(volumeValue);
 
   const selectedVoiceId = storage.selectedVoiceId || voices[0].id;
   setStorageItem("selectedVoiceId", selectedVoiceId);
@@ -177,6 +186,21 @@ document.getElementById("speedInput").addEventListener("input", async (e) => {
   const value = document.getElementById("speedInput").value;
   setSpeedValue(value);
   await setStorageItem("speed", value);
+});
+
+document.getElementById("volumeInput").addEventListener("input", async (e) => {
+  const value = document.getElementById("volumeInput").value;
+  setVolumeValue(value);
+  await setStorageItem("volume", value);
+  
+  // Send message to content script to update volume in real-time
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (tab) {
+    chrome.tabs.sendMessage(tab.id, { 
+      action: "updateVolume", 
+      volume: value 
+    });
+  }
 });
 
 document.getElementById("clearStorage").addEventListener("click", function () {

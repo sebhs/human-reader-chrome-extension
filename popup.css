@@ -107,6 +107,17 @@ button:hover {
   width: 150px;
 }
 
+#volumeValue {
+  font-weight: bold;
+  width: 50px;
+  text-align: center;
+  font-size: 16px;
+}
+
+#volumeInput {
+  width: 150px;
+}
+
 .shortcut {
   font-family: monospace;
   font-weight: bold;

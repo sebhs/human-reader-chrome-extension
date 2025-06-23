@@ -111,7 +111,7 @@ const stopAudio = () => {
 
 let sourceOpenEventAdded = false;
 const streamAudio = async () => {
-  const storage = await readStorage(["apiKey", "speed"]);
+  const storage = await readStorage(["apiKey", "speed", "volume"]);
   if (!storage.apiKey) {
     handleMissingApiKey();
     return;
@@ -121,6 +121,8 @@ const streamAudio = async () => {
   audioElement.src = URL.createObjectURL(mediaSource);
   const playbackRate = storage.speed ? storage.speed : 1;
   audioElement.playbackRate = playbackRate;
+  const volume = storage.volume ? storage.volume / 100 : 1;
+  audioElement.volume = volume;
   audioElement.play();
   if (!sourceOpenEventAdded) {
     sourceOpenEventAdded = true;
@@ -276,6 +278,10 @@ ttsButton.addEventListener("keydown", function (e) {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "readOutLoud") {
     onClickTtsButton();
+  } else if (message.action === "updateVolume") {
+    // Update audio volume in real-time
+    const volume = message.volume / 100;
+    audioElement.volume = volume;
   }
   return true
 });
