@@ -14,19 +14,28 @@ document.body.appendChild(ttsButton);
 
 let buttonState = "play";
 const setButtonState = (state) => {
-  if (state === "loading") {
-    buttonState = "loading";
-    ttsButton.src = chrome.runtime.getURL("images/spinner.svg");
-    ttsButton.disabled = true;
-  } else if (state === "play") {
-    buttonState = "play";
-    ttsButton.src = chrome.runtime.getURL("images/play.svg");
-    ttsButton.disabled = false;
-    audioElement.pause();
-  } else if (state === "speak") {
-    buttonState = "speak";
-    ttsButton.src = chrome.runtime.getURL("images/stop.svg");
-    ttsButton.disabled = false;
+  try {
+    if (!ttsButton || !document.body.contains(ttsButton)) {
+      // Unngå feil hvis extension context er invalidert
+      return;
+    }
+    if (state === "loading") {
+      buttonState = "loading";
+      ttsButton.src = chrome.runtime.getURL("images/spinner.svg");
+      ttsButton.disabled = true;
+    } else if (state === "play") {
+      buttonState = "play";
+      ttsButton.src = chrome.runtime.getURL("images/play.svg");
+      ttsButton.disabled = false;
+      audioElement.pause();
+    } else if (state === "speak") {
+      buttonState = "speak";
+      ttsButton.src = chrome.runtime.getURL("images/stop.svg");
+      ttsButton.disabled = false;
+    }
+  } catch (e) {
+    // Ignorer feil hvis extension context er invalidert
+    // Dette hindrer "Extension context invalidated"-feil i konsollen
   }
 };
 
@@ -118,10 +127,43 @@ const streamAudio = async () => {
   }
   isStopped = false;
   streamingCompleted = false;
-  audioElement.src = URL.createObjectURL(mediaSource);
   const playbackRate = storage.speed ? storage.speed : 1;
-  audioElement.playbackRate = playbackRate;
-  audioElement.play();
+  let audioChunks = [];
+  let totalLength = 0;
+  try {
+    const response = await fetchResponse();
+    if (!response.body) {
+      alert("Failed to fetch audio data. Please try again.");
+      setButtonState("play");
+      return;
+    }
+    const reader = response.body.getReader();
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      audioChunks.push(value);
+      totalLength += value.length;
+    }
+    let audioBuffer = new Uint8Array(totalLength);
+    let offset = 0;
+    for (let chunk of audioChunks) {
+      audioBuffer.set(chunk, offset);
+      offset += chunk.length;
+    }
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const decodedBuffer = await audioCtx.decodeAudioData(audioBuffer.buffer);
+    const source = audioCtx.createBufferSource();
+    source.buffer = decodedBuffer;
+    source.connect(audioCtx.destination);
+    source.playbackRate.value = playbackRate;
+    source.start();
+    setButtonState("speak");
+    source.onended = () => setButtonState("play");
+  } catch (err) {
+    alert("Audio playback failed on this page. Try reloading or check your network connection.");
+    setButtonState("play");
+    console.error(err);
+  }
   if (!sourceOpenEventAdded) {
     sourceOpenEventAdded = true;
     mediaSource.addEventListener("sourceopen", () => {
@@ -216,11 +258,23 @@ async function onClickTtsButton() {
     stopAudio();
     return;
   }
+  const text = window.getSelection().toString().trim();
+  if (!text) {
+    alert("Velg tekst før du starter opplesning.");
+    setButtonState("play");
+    return;
+  }
+  if (typeof window.MediaSource === "undefined") {
+    alert("Denne siden eller nettleseren støtter ikke lydavspilling via MediaSource. Prøv en annen side eller nettleser.");
+    setButtonState("play");
+    return;
+  }
   setButtonState("loading");
   try {
-    setTextToPlay(window.getSelection().toString());
+    setTextToPlay(text);
     await streamAudio();
   } catch (error) {
+    alert("Det oppstod en feil under henting eller avspilling av lyd. Dette kan skyldes nettverksfeil, CORS, eller at siden blokkerer utvidelsen (CSP). Prøv en annen side, eller sjekk nettverkstilgang.");
     console.error(error);
     setButtonState("play");
   }

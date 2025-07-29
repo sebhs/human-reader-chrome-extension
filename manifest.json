@@ -20,10 +20,15 @@
     {
       "matches": ["<all_urls>"],
       "js": ["content.js"],
-      "css": ["style.css"]
+      "css": ["style.css"],
+      "all_frames": true,
+      "run_at": "document_idle"
     }
   ],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+    "https://api.elevenlabs.io/*",
+    "<all_urls>"
+  ],
   "web_accessible_resources": [
     {
       "resources": [
@@ -39,7 +44,7 @@
   "permissions": ["storage", "contextMenus"],
 
   "background": {
-    "service_worker": "background.js",
-    "persistent": false
-  }
+    "service_worker": "background.js"
+  },
+  "service_worker": ["popup_audio.js"]
 }
