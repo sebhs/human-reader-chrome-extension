@@ -12,34 +12,78 @@
       <div class="header">Human Reader</div>
       <div class="header-suffix">
         powered by
-        <a href="https://elevenlabs.io" target="_blank">ElevenLabs</a>
+        <select id="provider">
+          <option value="elevenlabs">ElevenLabs</option>
+          <option value="openai">OpenAI</option>
+        </select>
       </div>
     </div>
     <!-- With valid API key -->
     <div id="settings">
-      <div class="settingsItem">
-        <label for="voices">Voice:</label>
-        <select id="voices"></select>
+      <!-- ElevenLabs settings -->
+      <div id="settingsElevenlabs">
+        <div class="settingsItem">
+          <label for="voices">Voice:</label>
+          <select id="voices"></select>
+        </div>
+        <div class="settingsItemNoPadding">
+          <label for="mode">Model:</label>
+          <select id="mode">
+  <option value="eleven_v3">Eleven v3 (alpha)</option>
+  <option value="eleven_multilingual_v2">Eleven Multilingual v2</option>
+  <option value="eleven_flash_v2_5">Eleven Flash v2.5</option>
+  <option value="eleven_turbo_v2_5">Eleven Turbo v2.5</option>
+  <option value="eleven_turbo_v2">Eleven Turbo v2</option>
+  <option value="eleven_flash_v2">Eleven Flash v2</option>
+  <option value="eleven_monolingual_v1">Eleven English v1</option>
+  <option value="eleven_multilingual_v1">Eleven Multilingual v1</option>
+</select>
+        </div>
+        <div class="settingsItemNoPadding">
+          <p>
+            Read
+            <a
+              href="https://help.elevenlabs.io/hc/en-us/articles/13313366263441-What-languages-do-you-support"
+              target="_blank"
+              >here</a
+            >
+            for the differences in models and supported languages.
+          </p>
+        </div>
       </div>
-      <div class="settingsItemNoPadding">
-        <label for="mode">Model:</label>
-        <select id="mode">
-          <option value="eleven_turbo_v2">Turbo v2</option>
-          <option value="eleven_turbo_v2_5">Turbo v2.5</option>
-          <option value="eleven_multilingual_v2">Multilingual v2</option>
-        </select>
+      <!-- OpenAI settings -->
+      <div id="settingsOpenai" style="display: none;">
+        <div class="settingsItem">
+          <label for="openaiVoice">Voice:</label>
+          <select id="openaiVoice">
+            <option value="alloy">Alloy</option>
+            <option value="ash">Ash</option>
+            <option value="ballad">Ballad</option>
+            <option value="coral">Coral</option>
+            <option value="echo">Echo</option>
+            <option value="fable">Fable</option>
+            <option value="onyx">Onyx</option>
+            <option value="nova">Nova</option>
+            <option value="sage">Sage</option>
+            <option value="shimmer">Shimmer</option>
+            <option value="verse">Verse</option>
+          </select>
+        </div>
+        <div class="settingsItemNoPadding">
+          <label for="openaiModel">Model:</label>
+          <select id="openaiModel">
+            <option value="gpt-4o-mini-tts">GPT-4o Mini TTS</option>
+            <option value="tts-1">TTS-1 (faster)</option>
+            <option value="tts-1-hd">TTS-1 HD (higher quality)</option>
+          </select>
+        </div>
+        <div class="settingsItemNoPadding">
+          <p>
+            See <a href="https://platform.openai.com/docs/guides/text-to-speech" target="_blank">OpenAI TTS docs</a> for voice samples and details.
+          </p>
+        </div>
       </div>
-      <div class="settingsItemNoPadding">
-        <p>
-          Read
-          <a
-            href="https://help.elevenlabs.io/hc/en-us/articles/13313366263441-What-languages-do-you-support"
-            target="_blank"
-            >here</a
-          >
-          for the differences in models and supported languages.
-        </p>
-      </div>
+      <!-- Speed (shared) -->
       <div class="settingsItem">
         <label for="speed">Speed:</label>
         <span id="speedValue">1x</span>
@@ -72,31 +116,58 @@
     <!-- Without valid API key/Setup -->
     <div id="welcome">
       <h3>Welcome</h3>
-      <div>
-        To get started, you need to:
-        <ul>
-          <li>
-            Create an account (or log in) on
-            <a href="https://elevenlabs.io/?from=partnerlove324" target="_blank"
-              >elevenlabs.io</a
-            >
-          </li>
-          <li>
-            Go to your profile page and copy your API key
-            <a
-              href="https://help.elevenlabs.io/hc/en-us/articles/14599447207697-How-to-authorize-yourself-using-your-xi-api-key"
-              target="_blank"
-              >like this</a
-            >
-          </li>
-          <li>Paste the API key into the input field below</li>
-          <li>Click "Set" to get started</li>
-        </ul>
+      <!-- ElevenLabs welcome -->
+      <div id="welcomeElevenlabs">
+        <div>
+          To get started, you need to:
+          <ul>
+            <li>
+              Create an account (or log in) on
+              <a href="https://elevenlabs.io/?from=partnerlove324" target="_blank"
+                >elevenlabs.io</a
+              >
+            </li>
+            <li>
+              Go to your profile page and copy your API key
+              <a
+                href="https://help.elevenlabs.io/hc/en-us/articles/14599447207697-How-to-authorize-yourself-using-your-xi-api-key"
+                target="_blank"
+                >like this</a
+              >
+            </li>
+            <li>Paste the API key into the input field below</li>
+            <li>Click "Set" to get started</li>
+          </ul>
+        </div>
+        <div class="welcomeInput">
+          <label for="apiKey">API Key:</label>
+          <input type="text" id="apiKey" />
+          <button id="setApiKey">Set</button>
+        </div>
       </div>
-      <div class="welcomeInput">
-        <label for="apiKey">API Key:</label>
-        <input type="text" id="apiKey" />
-        <button id="setApiKey">Set</button>
+      <!-- OpenAI welcome -->
+      <div id="welcomeOpenai" style="display: none;">
+        <div>
+          To get started, you need to:
+          <ul>
+            <li>
+              Create an account (or log in) on
+              <a href="https://platform.openai.com" target="_blank"
+                >platform.openai.com</a
+              >
+            </li>
+            <li>
+              Go to <a href="https://platform.openai.com/api-keys" target="_blank">API keys</a> and create a new key
+            </li>
+            <li>Paste the API key into the input field below</li>
+            <li>Click "Set" to get started</li>
+          </ul>
+        </div>
+        <div class="welcomeInput">
+          <label for="openaiApiKey">API Key:</label>
+          <input type="text" id="openaiApiKey" />
+          <button id="setOpenaiApiKey">Set</button>
+        </div>
       </div>
     </div>
 

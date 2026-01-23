@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Human Reader, powered by ElevenLabs",
-  "version": "1.7",
-  "description": "Listen to any text in the web in a human voice. A simple extension powered by ElevenLabs to convert any text to speech.",
+  "name": "Human Reader",
+  "version": "1.8",
+  "description": "Listen to any text in the web in a human voice. Uses your ElevenLabs or OpenAI API access to convert any text to speech.",
   "icons": {
     "16": "images/icon16.png",
     "48": "images/icon48.png",
@@ -23,7 +23,10 @@
       "css": ["style.css"]
     }
   ],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+     "https://api.elevenlabs.io/*",
+     "https://api.openai.com/*"
+  ],
   "web_accessible_resources": [
     {
       "resources": [
@@ -36,10 +39,9 @@
       "matches": ["<all_urls>"]
     }
   ],
-  "permissions": ["storage", "contextMenus"],
+  "permissions": ["storage", "contextMenus", "offscreen"],
 
   "background": {
-    "service_worker": "background.js",
-    "persistent": false
+    "service_worker": "background.js"
   }
 }

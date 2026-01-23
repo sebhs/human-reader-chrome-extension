@@ -28,3 +28,4 @@ yarn-error.log*
 .env
 .env.test
 media/.DS_Store
+*.ipynb

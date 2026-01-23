@@ -18,13 +18,42 @@ const readStorage = async (keys) => {
   });
 };
 
-const setWelcomeScreen = () => {
+const setWelcomeScreen = async () => {
   const settings = document.getElementById("settings");
   const welcome = document.getElementById("welcome");
   const info = document.getElementById("info");
   settings.style.display = "none";
   welcome.style.display = "block";
   info.style.display = "none";
+  
+  // Show correct welcome based on provider
+  const storage = await readStorage(["provider"]);
+  const provider = storage.provider || "elevenlabs";
+  updateProviderUI(provider);
+};
+
+const updateProviderUI = (provider) => {
+  const providerSelect = document.getElementById("provider");
+  providerSelect.value = provider;
+  
+  // Welcome screens
+  const welcomeElevenlabs = document.getElementById("welcomeElevenlabs");
+  const welcomeOpenai = document.getElementById("welcomeOpenai");
+  // Settings screens
+  const settingsElevenlabs = document.getElementById("settingsElevenlabs");
+  const settingsOpenai = document.getElementById("settingsOpenai");
+  
+  if (provider === "openai") {
+    if (welcomeElevenlabs) welcomeElevenlabs.style.display = "none";
+    if (welcomeOpenai) welcomeOpenai.style.display = "block";
+    if (settingsElevenlabs) settingsElevenlabs.style.display = "none";
+    if (settingsOpenai) settingsOpenai.style.display = "block";
+  } else {
+    if (welcomeElevenlabs) welcomeElevenlabs.style.display = "block";
+    if (welcomeOpenai) welcomeOpenai.style.display = "none";
+    if (settingsElevenlabs) settingsElevenlabs.style.display = "block";
+    if (settingsOpenai) settingsOpenai.style.display = "none";
+  }
 };
 
 const setSettingsScreen = async () => {
@@ -36,8 +65,16 @@ const setSettingsScreen = async () => {
   info.style.display = "block";
 
   //assumes storage is already set
-  storage = await readStorage(["mode", "speed"]);
-  document.getElementById("mode").value = storage.mode;
+  const storage = await readStorage(["mode", "speed", "provider", "openaiVoice", "openaiModel"]);
+  const provider = storage.provider || "elevenlabs";
+  updateProviderUI(provider);
+  
+  if (provider === "elevenlabs") {
+    document.getElementById("mode").value = storage.mode || "eleven_turbo_v2_5";
+  } else {
+    document.getElementById("openaiVoice").value = storage.openaiVoice || "alloy";
+    document.getElementById("openaiModel").value = storage.openaiModel || "gpt-4o-mini-tts";
+  }
   setSpeedValue(storage.speed || 1);
 };
 
@@ -134,9 +171,13 @@ const fetchVoices = async () => {
 };
 
 document.addEventListener("DOMContentLoaded", async () => {
-  const storage = await readStorage(["apiKey"]);
-  if (storage.apiKey) {
+  const storage = await readStorage(["apiKey", "openaiApiKey", "provider"]);
+  const provider = storage.provider || "elevenlabs";
+  
+  if (provider === "elevenlabs" && storage.apiKey) {
     populateVoices();
+    setSettingsScreen();
+  } else if (provider === "openai" && storage.openaiApiKey) {
     setSettingsScreen();
   } else {
     setWelcomeScreen();
@@ -188,5 +229,68 @@ document.getElementById("clearStorage").addEventListener("click", function () {
     chrome.storage.local.clear();
     setWelcomeScreen();
     document.getElementById("apiKey").value = "";
+    document.getElementById("openaiApiKey").value = "";
   }
+});
+
+// Provider switching
+document.getElementById("provider").addEventListener("change", async (e) => {
+  const provider = e.target.value;
+  await setStorageItem("provider", provider);
+  updateProviderUI(provider);
+  
+  // Check if we have a valid API key for this provider
+  const storage = await readStorage(["apiKey", "openaiApiKey"]);
+  if (provider === "elevenlabs" && storage.apiKey) {
+    await setSettingsScreen();
+  } else if (provider === "openai" && storage.openaiApiKey) {
+    await setSettingsScreen();
+  } else {
+    await setWelcomeScreen();
+  }
+});
+
+// OpenAI API key validation
+const setOpenaiAPIKey = async (apiKey) => {
+  const response = await fetch("https://api.openai.com/v1/models", {
+    method: "GET",
+    headers: {
+      "Authorization": `Bearer ${apiKey}`,
+    },
+  });
+  if (response.ok) {
+    await setStorageItem("openaiApiKey", apiKey);
+  } else {
+    throw new Error("API request failed");
+  }
+};
+
+document.getElementById("setOpenaiApiKey").addEventListener("click", async () => {
+  const button = document.getElementById("setOpenaiApiKey");
+  const inputValue = document.getElementById("openaiApiKey").value;
+  button.textContent = "...";
+  try {
+    await setOpenaiAPIKey(inputValue);
+    await setStorageItem("provider", "openai");
+    await setStorageItem("openaiVoice", "alloy");
+    await setStorageItem("openaiModel", "gpt-4o-mini-tts");
+    await setSettingsScreen();
+    button.textContent = "Set";
+  } catch (error) {
+    console.log(error);
+    button.textContent = "Set";
+    alert("Invalid API key, please try again.");
+    console.error(error);
+  }
+});
+
+// OpenAI voice/model changes
+document.getElementById("openaiVoice").addEventListener("change", async () => {
+  const voice = document.getElementById("openaiVoice").value;
+  await setStorageItem("openaiVoice", voice);
+});
+
+document.getElementById("openaiModel").addEventListener("change", async () => {
+  const model = document.getElementById("openaiModel").value;
+  await setStorageItem("openaiModel", model);
 });

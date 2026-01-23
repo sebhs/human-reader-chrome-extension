@@ -1,9 +1,11 @@
 const codec = "audio/mpeg";
-const maxBufferDuration = 90;
 let streamingCompleted = true;
-const mediaSource = new MediaSource();
-const audioElement = new Audio();
+let isStopped = false;
 
+// Helper to send messages to offscreen document via background
+const sendToOffscreen = (data) => {
+  return chrome.runtime.sendMessage({ target: "offscreen", data });
+};
 const ttsButton = document.createElement("img");
 ttsButton.id = "ttsButton";
 ttsButton.alt = "Text to speech button";
@@ -22,7 +24,7 @@ const setButtonState = (state) => {
     buttonState = "play";
     ttsButton.src = chrome.runtime.getURL("images/play.svg");
     ttsButton.disabled = false;
-    audioElement.pause();
+    sendToOffscreen({ action: "pauseAudio" });
   } else if (state === "speak") {
     buttonState = "speak";
     ttsButton.src = chrome.runtime.getURL("images/stop.svg");
@@ -44,15 +46,68 @@ const readStorage = async (keys) => {
 };
 
 const fetchResponse = async () => {
-  const storage = await readStorage(["apiKey", "selectedVoiceId", "mode"]);
-  const selectedVoiceId = storage.selectedVoiceId
-    ? storage.selectedVoiceId
-    : "21m00Tcm4TlvDq8ikWAM"; //fallback Voice ID
-  const mode = storage.mode
-  const model_id =
-    (mode === "englishfast" || mode === "eleven_turbo_v2") ? "eleven_turbo_v2" :
-      (mode === "multilingual" || mode === "eleven_multilingual_v2") ? "eleven_multilingual_v2" :
-        "eleven_turbo_v2_5";
+  const storage = await readStorage([
+    "apiKey", "selectedVoiceId", "mode", "provider", 
+    "openaiApiKey", "openaiVoice", "openaiModel"
+  ]);
+  const provider = storage.provider || "elevenlabs";
+
+  if (provider === "openai") {
+    return fetchOpenAIResponse(storage);
+  } else {
+    return fetchElevenLabsResponse(storage);
+  }
+};
+
+const fetchOpenAIResponse = async (storage) => {
+  const voice = storage.openaiVoice || "alloy";
+  const model = storage.openaiModel || "gpt-4o-mini-tts";
+  
+  const response = await fetch("https://api.openai.com/v1/audio/speech", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${storage.openaiApiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: model,
+      input: textToPlay,
+      voice: voice,
+      response_format: "mp3",
+    }),
+  });
+  return response;
+};
+
+const fetchElevenLabsResponse = async (storage) => {
+  const selectedVoiceId = storage.selectedVoiceId || "21m00Tcm4TlvDq8ikWAM";
+  const mode = storage.mode || "eleven_turbo_v2_5";
+  
+  // Normalize model_id
+      const model_id =
+    (mode === "eleven_v3_(alpha)" || mode === "eleven_v3") ? "eleven_v3" :
+    (mode === "eleven_multilingual_v2" || mode === "eleven_multilingual_v2") ? "eleven_multilingual_v2" :
+    (mode === "eleven_flash_v2.5" || mode === "eleven_flash_v2_5") ? "eleven_flash_v2_5" :
+    (mode === "eleven_turbo_v2.5" || mode === "eleven_turbo_v2_5") ? "eleven_turbo_v2_5" :
+    (mode === "eleven_turbo_v2" || mode === "eleven_turbo_v2") ? "eleven_turbo_v2" :
+    (mode === "eleven_flash_v2" || mode === "eleven_flash_v2") ? "eleven_flash_v2" :
+    (mode === "eleven_english_v1" || mode === "eleven_monolingual_v1") ? "eleven_monolingual_v1" :
+    "eleven_multilingual_v1"; // default
+    (mode === "eleven_multilingual_v2" || mode === "eleven_multilingual_v2") ? "eleven_multilingual_v2" :
+    (mode === "eleven_flash_v2.5" || mode === "eleven_flash_v2_5") ? "eleven_flash_v2_5" :
+    (mode === "eleven_turbo_v2.5" || mode === "eleven_turbo_v2_5") ? "eleven_turbo_v2_5" :
+    (mode === "eleven_turbo_v2" || mode === "eleven_turbo_v2") ? "eleven_turbo_v2" :
+    (mode === "eleven_flash_v2" || mode === "eleven_flash_v2") ? "eleven_flash_v2" :
+    (mode === "eleven_multilingual_v1" || mode === "eleven_multilingual_v1") ? "eleven_multilingual_v1" :
+    "eleven_monolingual_v1"; // default
+    mode.includes("multilingual_v2") ? "eleven_multilingual_v2" :
+    mode.includes("flash_v2_5") || mode.includes("flash_v2.5") ? "eleven_flash_v2_5" :
+    mode.includes("turbo_v2_5") || mode.includes("turbo_v2.5") ? "eleven_turbo_v2_5" :
+    mode.includes("turbo_v2") ? "eleven_turbo_v2" :
+    mode.includes("flash_v2") ? "eleven_flash_v2" :
+    mode.includes("monolingual") || mode.includes("english_v1") ? "eleven_monolingual_v1" :
+    mode.includes("multilingual_v1") ? "eleven_multilingual_v1" :
+    "eleven_turbo_v2_5";
 
   const response = await fetch(
     `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}/stream`,
@@ -76,138 +131,97 @@ const fetchResponse = async () => {
   return response;
 };
 
-const handleMissingApiKey = () => {
+
+const handleMissingApiKey = async () => {
+  const storage = await readStorage(["provider"]);
+  const provider = storage.provider || "elevenlabs";
+  const providerName = provider === "openai" ? "OpenAI" : "ElevenLabs";
+  
   setButtonState("speak");
   const audio = new Audio(chrome.runtime.getURL("media/error-no-api-key.mp3"));
   audio.play();
   //since alert() is blocking, timeout is needed so audio plays while alert is visible.
   setTimeout(() => {
     alert(
-      "Please set your Elevenlabs API key in the extension settings to use Human Reader."
+      `Please set your ${providerName} API key in the extension settings to use Human Reader.`
     );
-    chrome.storage.local.clear();
     setButtonState("play");
   }, 100);
 };
 
-const clearBuffer = () => {
-  if (mediaSource.readyState === "open") {
-    const sourceBuffers = mediaSource.sourceBuffers;
-    for (let i = 0; i < sourceBuffers.length; i++) {
-      sourceBuffers[i].abort();
-      mediaSource.removeSourceBuffer(sourceBuffers[i]);
-    }
-  }
-  audioElement.pause();
-  audioElement.src = "";
-  streamingCompleted = true;
-};
-
 const stopAudio = () => {
   isStopped = true;
-  clearBuffer();
+  streamingCompleted = true;
+  sendToOffscreen({ action: "stopAudio" });
   setButtonState("play");
 };
 
-let sourceOpenEventAdded = false;
 const streamAudio = async () => {
-  const storage = await readStorage(["apiKey", "speed"]);
-  if (!storage.apiKey) {
+  const storage = await readStorage(["apiKey", "speed", "provider", "openaiApiKey"]);
+  const provider = storage.provider || "elevenlabs";
+  const hasApiKey = provider === "openai" ? storage.openaiApiKey : storage.apiKey;
+  
+  if (!hasApiKey) {
     handleMissingApiKey();
     return;
   }
+  
   isStopped = false;
   streamingCompleted = false;
-  audioElement.src = URL.createObjectURL(mediaSource);
   const playbackRate = storage.speed ? storage.speed : 1;
-  audioElement.playbackRate = playbackRate;
-  audioElement.play();
-  if (!sourceOpenEventAdded) {
-    sourceOpenEventAdded = true;
-    mediaSource.addEventListener("sourceopen", () => {
-      const sourceBuffer = mediaSource.addSourceBuffer(codec);
+  
+  // Initialize offscreen audio
+  await sendToOffscreen({ action: "initAudio" });
+  
+  try {
+    const response = await fetchResponse();
 
-      let isAppending = false;
-      let appendQueue = [];
+    if (response.status === 401) {
+      const errorBody = await response.json();
+      const errorStatus = errorBody.detail?.status;
+      if (errorStatus === "detected_unusual_activity" || errorStatus === "quota_exceeded") {
+        alert(`MESSAGE FROM ELEVENLABS: ${errorBody.detail.message}`);
+      } else {
+        alert("Unauthorized. Please set your API key again.");
+      }
+      setButtonState("play");
+      return;
+    }
 
-      const processAppendQueue = () => {
-        if (!isAppending && appendQueue.length > 0) {
-          isAppending = true;
-          const chunk = appendQueue.shift();
-          if (chunk && mediaSource.sourceBuffers.length > 0) {
-            sourceBuffer.appendBuffer(chunk);
-          } else {
-            isAppending = false;
-          }
-        }
-      };
+    if (!response.body) {
+      const errorMessage = "Error fetching audio, please try again";
+      alert(errorMessage);
+      console.error(errorMessage);
+      setButtonState("play");
+      return;
+    }
 
-      sourceBuffer.addEventListener("updateend", () => {
-        isAppending = false;
-        processAppendQueue();
-      });
+    const reader = response.body.getReader();
+    let firstChunk = true;
 
-      const appendChunk = (chunk) => {
-        if (isStopped) return;
+    while (true) {
+      const { done, value } = await reader.read();
 
+      if (done) {
+        streamingCompleted = true;
+        sendToOffscreen({ action: "streamComplete" });
+        break;
+      }
+      
+      if (isStopped) break;
+
+      // Send chunk to offscreen document (convert to array for messaging)
+      sendToOffscreen({ action: "appendAudio", chunk: Array.from(value) });
+      
+      if (firstChunk) {
+        firstChunk = false;
         setButtonState("speak");
-        appendQueue.push(chunk);
-        processAppendQueue();
-
-        while (
-          mediaSource.duration - mediaSource.currentTime >
-          maxBufferDuration
-        ) {
-          const removeEnd = mediaSource.currentTime - maxBufferDuration;
-          sourceBuffer.remove(0, removeEnd);
-        }
-      };
-
-      const fetchAndAppendChunks = async () => {
-        try {
-          const response = await fetchResponse();
-
-          if (response.status === 401) {
-            const errorBody = await response.json();
-            const errorStatus = errorBody.detail.status
-            if (errorStatus === "detected_unusual_activity" || errorStatus === "quota_exceeded") {
-              alert(`MESSAGE FROM ELEVENLABS: ${errorBody.detail.message}`);
-            } else {
-              alert("Unauthorized. Please set your API key again.");
-              chrome.storage.local.clear();
-            }
-            setButtonState("play");
-            return;
-          }
-
-          if (!response.body) {
-            const errorMessage = "Error fetching audio, please try again";
-            alert(errorMessage);
-            console.error(errorMessage);
-            setButtonState("play");
-            return;
-          }
-
-          const reader = response.body.getReader();
-
-          while (true) {
-            const { done, value } = await reader.read();
-
-            if (done) {
-              // Signal the end of the stream
-              streamingCompleted = true;
-              break;
-            }
-
-            appendChunk(value.buffer);
-          }
-        } catch (error) {
-          setButtonState("play");
-          console.error("Error fetching and appending chunks:", error);
-        }
-      };
-      fetchAndAppendChunks();
-    });
+        sendToOffscreen({ action: "playAudio", speed: playbackRate });
+      }
+    }
+  } catch (error) {
+    setButtonState("play");
+    console.error("Error fetching and appending chunks:", error);
   }
 };
 
@@ -226,19 +240,10 @@ async function onClickTtsButton() {
   }
 }
 
-audioElement.addEventListener("timeupdate", () => {
-  // This is a hacky way to deterimne that the audio has ended. I couldn't find a better way to do it.
-  // If you have an idea, please let me know.
-  const playbackEndThreshold = 0.5;
-  if (streamingCompleted) {
-    if (audioElement.buffered.length > 0) {
-      const bufferEndTime = audioElement.buffered.end(audioElement.buffered.length - 1);
-      const timeLeft = bufferEndTime - audioElement.currentTime;
-
-      if (timeLeft <= playbackEndThreshold) {
-        setButtonState("play");
-      }
-    }
+// Listen for playback ended message from offscreen
+chrome.runtime.onMessage.addListener((message) => {
+  if (message.action === "playbackEnded") {
+    setButtonState("play");
   }
 });
 
@@ -277,7 +282,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.action === "readOutLoud") {
     onClickTtsButton();
   }
-  return true
 });
 
 document.addEventListener("keydown", function (e) {

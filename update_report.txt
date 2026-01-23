@@ -1,0 +1,46 @@
+=== ElevenLabs Extension Update Report ===
+
+Date: 2026-01-20 06:13:45
+Models found: 8
+Voices found: 20
+
+=== Available Models ===
+- Eleven v3 (alpha) (eleven_v3)
+  Description: The most expressive model. Supports 70+ languages. Requires more prompt engineering than our previous models. In alpha and the reliability will improve over time.
+  Languages: af: Afrikaans, ar: Arabic, hy: Armenian, as: Assamese, az: Azerbaijani, be: Belarusian, bn: Bengali, bs: Bosnian, bg: Bulgarian, ca: Catalan, ceb: Cebuano, ny: Chichewa, hr: Croatian, cs: Czech, da: Danish, nl: Dutch, en: English, et: Estonian, fil: Filipino, fi: Finnish, fr: French, gl: Galician, ka: Georgian, de: German, el: Greek, gu: Gujarati, ha: Hausa, he: Hebrew, hi: Hindi, hu: Hungarian, is: Icelandic, id: Indonesian, ga: Irish, it: Italian, ja: Japanese, jv: Javanese, kn: Kannada, kk: Kazakh, ky: Kirghiz, ko: Korean, lv: Latvian, ln: Lingala, lt: Lithuanian, lb: Luxembourgish, mk: Macedonian, ms: Malay, ml: Malayalam, zh: Mandarin Chinese, mr: Marathi, ne: Nepali, no: Norwegian, ps: Pashto, fa: Persian, pl: Polish, pt: Portuguese, pa: Punjabi, ro: Romanian, ru: Russian, sr: Serbian, sd: Sindhi, sk: Slovak, sl: Slovenian, so: Somali, es: Spanish, sw: Swahili, sv: Swedish, ta: Tamil, te: Telugu, th: Thai, tr: Turkish, uk: Ukrainian, ur: Urdu, vi: Vietnamese, cy: Welsh  Token cost: 1.0x
+
+- Eleven Multilingual v2 (eleven_multilingual_v2)
+  Description: Our most life-like, emotionally rich mode in 29 languages. Best for voice overs, audiobooks, post-production, or any other content creation needs.
+  Languages: en: English, ja: Japanese, zh: Chinese, de: German, hi: Hindi, fr: French, ko: Korean, pt: Portuguese, it: Italian, es: Spanish, id: Indonesian, nl: Dutch, tr: Turkish, fil: Filipino, pl: Polish, sv: Swedish, bg: Bulgarian, ro: Romanian, ar: Arabic, cs: Czech, el: Greek, fi: Finnish, hr: Croatian, ms: Malay, sk: Slovak, da: Danish, ta: Tamil, uk: Ukrainian, ru: Russian  Token cost: 1.0x
+
+- Eleven Flash v2.5 (eleven_flash_v2_5)
+  Description: Our ultra low latency model in 32 languages. Ideal for conversational use cases.
+  Languages: en: English, ja: Japanese, zh: Chinese, de: German, hi: Hindi, fr: French, ko: Korean, pt: Portuguese, it: Italian, es: Spanish, ru: Russian, id: Indonesian, nl: Dutch, tr: Turkish, fil: Filipino, pl: Polish, sv: Swedish, bg: Bulgarian, ro: Romanian, ar: Arabic, cs: Czech, el: Greek, fi: Finnish, hr: Croatian, ms: Malay, sk: Slovak, da: Danish, ta: Tamil, uk: Ukrainian, hu: Hungarian, no: Norwegian, vi: Vietnamese  Token cost: 1.0x
+
+- Eleven Turbo v2.5 (eleven_turbo_v2_5)
+  Description: Our high quality, low latency model in 32 languages. Best for developer use cases where speed matters and you need non-English languages.
+  Languages: en: English, ja: Japanese, zh: Chinese, de: German, hi: Hindi, fr: French, ko: Korean, pt: Portuguese, it: Italian, es: Spanish, ru: Russian, id: Indonesian, nl: Dutch, tr: Turkish, fil: Filipino, pl: Polish, sv: Swedish, bg: Bulgarian, ro: Romanian, ar: Arabic, cs: Czech, el: Greek, fi: Finnish, hr: Croatian, ms: Malay, sk: Slovak, da: Danish, ta: Tamil, uk: Ukrainian, vi: Vietnamese, no: Norwegian, hu: Hungarian  Token cost: 1.0x
+
+- Eleven Turbo v2 (eleven_turbo_v2)
+  Description: Our English-only, low latency model. Best for developer use cases where speed matters and you only need English. Performance is on par with Turbo v2.5.
+  Languages: en: English  Token cost: 1.0x
+
+- Eleven Flash v2 (eleven_flash_v2)
+  Description: Our ultra low latency model in english. Ideal for conversational use cases.
+  Languages: en: English  Token cost: 1.0x
+
+- Eleven English v1 (eleven_monolingual_v1)
+  Description: Our first ever text to speech model. Now outclassed by Multilingual v2 (for content creation) and Turbo v2.5 (for low latency use cases).
+  Languages: en: English  Token cost: 1.0x
+
+- Eleven Multilingual v1 (eleven_multilingual_v1)
+  Description: Our first Multilingual model, capability of generating speech in 10 languages. Now outclassed by Multilingual v2 (for content creation) and Turbo v2.5 (for low latency use cases).
+  Languages: en: English, de: German, pl: Polish, es: Spanish, it: Italian, fr: French, pt: Portuguese, hi: Hindi, ar: Arabic  Token cost: 1.0x
+
+
+=== Subscription Info ===
+Tier: free
+Character limit: 10000
+Character count: 333
+Can use instant voice cloning: False
+Can use professional voice cloning: False
