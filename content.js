@@ -43,49 +43,97 @@ const readStorage = async (keys) => {
   });
 };
 
-const fetchResponse = async () => {
-  const storage = await readStorage(["apiKey", "selectedVoiceId", "mode"]);
-  const selectedVoiceId = storage.selectedVoiceId
-    ? storage.selectedVoiceId
-    : "21m00Tcm4TlvDq8ikWAM"; //fallback Voice ID
-  const mode = storage.mode
-  const model_id =
-    (mode === "englishfast" || mode === "eleven_turbo_v2") ? "eleven_turbo_v2" :
-      (mode === "multilingual" || mode === "eleven_multilingual_v2") ? "eleven_multilingual_v2" :
-        "eleven_turbo_v2_5";
-
-  const response = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}/stream`,
-    {
-      method: "POST",
-      headers: {
-        Accept: codec,
-        "xi-api-key": storage.apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model_id: model_id,
-        text: textToPlay,
-        voice_settings: {
-          similarity_boost: 0.5,
-          stability: 0.5,
-        },
-      }),
-    }
-  );
-  return response;
+// Resolve the active provider (defaults to ElevenLabs) from storage.
+const getActiveProvider = async () => {
+  const { provider } = await readStorage(["provider"]);
+  const id = provider && PROVIDERS[provider] ? provider : DEFAULT_PROVIDER;
+  return PROVIDERS[id];
 };
 
-const handleMissingApiKey = () => {
+// Decode a base64 audio chunk (used by the 60db NDJSON stream) into bytes.
+const base64ToUint8Array = (base64) => {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes;
+};
+
+// Remove only the given provider's credentials/cache, leaving the other intact.
+const clearProviderData = (providerId) => {
+  return new Promise((resolve) => {
+    chrome.storage.local.remove(
+      [
+        pkey(providerId, "apiKey"),
+        pkey(providerId, "voices"),
+        pkey(providerId, "selectedVoiceId"),
+      ],
+      resolve
+    );
+  });
+};
+
+const fetchResponse = async () => {
+  const provider = await getActiveProvider();
+  const storage = await readStorage([
+    pkey(provider.id, "apiKey"),
+    pkey(provider.id, "selectedVoiceId"),
+    pkey(provider.id, "mode"),
+  ]);
+  const selectedVoiceId =
+    storage[pkey(provider.id, "selectedVoiceId")] || provider.fallbackVoiceId;
+  const mode = storage[pkey(provider.id, "mode")];
+
+  const request = provider.buildTtsRequest({
+    voiceId: selectedVoiceId,
+    text: textToPlay,
+    mode: mode,
+  });
+
+  const response = await fetch(request.url, {
+    method: "POST",
+    headers: {
+      ...provider.authHeaders(storage[pkey(provider.id, "apiKey")]),
+      ...request.headers,
+    },
+    body: JSON.stringify(request.body),
+  });
+  return { response, provider };
+};
+
+// Handle a 401 from either provider: surface ElevenLabs' detail messages when
+// present, otherwise treat it as a bad key and drop that provider's credentials.
+const handleUnauthorized = async (response, provider) => {
+  let detail;
+  try {
+    detail = (await response.json()).detail;
+  } catch (e) {
+    detail = undefined;
+  }
+  if (
+    detail &&
+    (detail.status === "detected_unusual_activity" ||
+      detail.status === "quota_exceeded")
+  ) {
+    alert(`MESSAGE FROM ${provider.label.toUpperCase()}: ${detail.message}`);
+  } else {
+    alert("Unauthorized. Please set your API key again.");
+    await clearProviderData(provider.id);
+  }
+  setButtonState("play");
+};
+
+const handleMissingApiKey = (providerId) => {
   setButtonState("speak");
   const audio = new Audio(chrome.runtime.getURL("media/error-no-api-key.mp3"));
   audio.play();
   //since alert() is blocking, timeout is needed so audio plays while alert is visible.
   setTimeout(() => {
     alert(
-      "Please set your Elevenlabs API key in the extension settings to use Human Reader."
+      "Please set your API key in the extension settings to use Human Reader."
     );
-    chrome.storage.local.clear();
+    if (providerId) clearProviderData(providerId);
     setButtonState("play");
   }, 100);
 };
@@ -111,9 +159,10 @@ const stopAudio = () => {
 
 let sourceOpenEventAdded = false;
 const streamAudio = async () => {
-  const storage = await readStorage(["apiKey", "speed"]);
-  if (!storage.apiKey) {
-    handleMissingApiKey();
+  const provider = await getActiveProvider();
+  const storage = await readStorage([pkey(provider.id, "apiKey"), "speed"]);
+  if (!storage[pkey(provider.id, "apiKey")]) {
+    handleMissingApiKey(provider.id);
     return;
   }
   isStopped = false;
@@ -163,24 +212,42 @@ const streamAudio = async () => {
         }
       };
 
+      // Parse one frame of a 60db NDJSON stream and queue any audio it carries.
+      const handleNdjsonLine = (line) => {
+        let message;
+        try {
+          message = JSON.parse(line);
+        } catch (e) {
+          return;
+        }
+        if (message.type === "chunk") {
+          const audioContent = message.result && message.result.audioContent;
+          if (audioContent) {
+            appendChunk(base64ToUint8Array(audioContent).buffer);
+          }
+        } else if (message.type === "complete") {
+          streamingCompleted = true;
+        } else if (message.type === "error") {
+          console.error("60db stream error:", message);
+          alert(
+            `Error from 60db: ${
+              message.message || message.error || "synthesis failed"
+            }`
+          );
+          setButtonState("play");
+        }
+      };
+
       const fetchAndAppendChunks = async () => {
         try {
-          const response = await fetchResponse();
+          const { response, provider } = await fetchResponse();
 
           if (response.status === 401) {
-            const errorBody = await response.json();
-            const errorStatus = errorBody.detail.status
-            if (errorStatus === "detected_unusual_activity" || errorStatus === "quota_exceeded") {
-              alert(`MESSAGE FROM ELEVENLABS: ${errorBody.detail.message}`);
-            } else {
-              alert("Unauthorized. Please set your API key again.");
-              chrome.storage.local.clear();
-            }
-            setButtonState("play");
+            await handleUnauthorized(response, provider);
             return;
           }
 
-          if (!response.body) {
+          if (!response.ok || !response.body) {
             const errorMessage = "Error fetching audio, please try again";
             alert(errorMessage);
             console.error(errorMessage);
@@ -190,16 +257,35 @@ const streamAudio = async () => {
 
           const reader = response.body.getReader();
 
-          while (true) {
-            const { done, value } = await reader.read();
-
-            if (done) {
-              // Signal the end of the stream
-              streamingCompleted = true;
-              break;
+          if (provider.streamFormat === "ndjson") {
+            // 60db: newline-delimited JSON frames wrapping base64 audio.
+            const decoder = new TextDecoder();
+            let textBuffer = "";
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) {
+                streamingCompleted = true;
+                break;
+              }
+              textBuffer += decoder.decode(value, { stream: true });
+              let newlineIndex;
+              while ((newlineIndex = textBuffer.indexOf("\n")) >= 0) {
+                const line = textBuffer.slice(0, newlineIndex).trim();
+                textBuffer = textBuffer.slice(newlineIndex + 1);
+                if (line) handleNdjsonLine(line);
+              }
             }
-
-            appendChunk(value.buffer);
+          } else {
+            // ElevenLabs: raw binary MP3 frames.
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) {
+                // Signal the end of the stream
+                streamingCompleted = true;
+                break;
+              }
+              appendChunk(value.buffer);
+            }
           }
         } catch (error) {
           setButtonState("play");
