@@ -12,24 +12,32 @@
       <div class="header">Human Reader</div>
       <div class="header-suffix">
         powered by
-        <a href="https://elevenlabs.io" target="_blank">ElevenLabs</a>
+        <a id="poweredByLink" href="https://elevenlabs.io" target="_blank"
+          >ElevenLabs</a
+        >
       </div>
     </div>
+
+    <!-- Provider selection is always available, with or without an API key -->
+    <div class="settingsItem" id="providerSelector">
+      <label for="provider">Provider:</label>
+      <select id="provider">
+        <option value="elevenlabs">ElevenLabs</option>
+        <option value="60db">60db</option>
+      </select>
+    </div>
+
     <!-- With valid API key -->
     <div id="settings">
       <div class="settingsItem">
         <label for="voices">Voice:</label>
         <select id="voices"></select>
       </div>
-      <div class="settingsItemNoPadding">
+      <div class="settingsItemNoPadding" id="modelRow">
         <label for="mode">Model:</label>
-        <select id="mode">
-          <option value="eleven_turbo_v2">Turbo v2</option>
-          <option value="eleven_turbo_v2_5">Turbo v2.5</option>
-          <option value="eleven_multilingual_v2">Multilingual v2</option>
-        </select>
+        <select id="mode"></select>
       </div>
-      <div class="settingsItemNoPadding">
+      <div class="settingsItemNoPadding" id="modelNote">
         <p>
           Read
           <a
@@ -77,17 +85,13 @@
         <ul>
           <li>
             Create an account (or log in) on
-            <a href="https://elevenlabs.io/?from=partnerlove324" target="_blank"
-              >elevenlabs.io</a
+            <a id="signupLink" href="https://elevenlabs.io" target="_blank"
+              >the provider's site</a
             >
           </li>
           <li>
             Go to your profile page and copy your API key
-            <a
-              href="https://help.elevenlabs.io/hc/en-us/articles/14599447207697-How-to-authorize-yourself-using-your-xi-api-key"
-              target="_blank"
-              >like this</a
-            >
+            <a id="apiKeyHelpLink" href="#" target="_blank">like this</a>
           </li>
           <li>Paste the API key into the input field below</li>
           <li>Click "Set" to get started</li>
@@ -114,6 +118,7 @@
       This Chrome extension was created by
       <a href="https://twitter.com/sebselassie" target="_blank">Seb</a>. v1.7.
     </div>
+    <script src="providers.js"></script>
     <script src="popup.js"></script>
   </body>
 </html>
