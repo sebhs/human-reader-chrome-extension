@@ -1,287 +1,175 @@
-const codec = "audio/mpeg";
-const maxBufferDuration = 90;
-let streamingCompleted = true;
-const mediaSource = new MediaSource();
-const audioElement = new Audio();
+(() => {
+  const host = document.createElement('human-reader-controls');
+  host.style.setProperty('all', 'initial', 'important');
+  host.style.setProperty('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', 'important');
+  host.style.setProperty('font-size', '14px', 'important');
+  host.style.setProperty('line-height', '1.45', 'important');
+  host.style.setProperty('color', '#242235', 'important');
+  host.style.setProperty('position', 'fixed', 'important');
+  host.style.setProperty('inset', '0', 'important');
+  host.style.setProperty('pointer-events', 'none', 'important');
+  host.style.setProperty('z-index', '2147483647', 'important');
+  const root = host.attachShadow({ mode: 'open' });
+  const stylesheet = document.createElement('link');
+  stylesheet.rel = 'stylesheet';
+  stylesheet.href = chrome.runtime.getURL('style.css');
+  root.append(stylesheet);
 
-const ttsButton = document.createElement("img");
-ttsButton.id = "ttsButton";
-ttsButton.alt = "Text to speech button";
-ttsButton.setAttribute("role", "button");
-ttsButton.src = chrome.runtime.getURL("images/play.svg");
-ttsButton.style.display = "none";
-document.body.appendChild(ttsButton);
+  const readButton = document.createElement('button');
+  readButton.type = 'button';
+  readButton.className = 'read-selection';
+  readButton.textContent = 'Read aloud';
+  readButton.setAttribute('aria-label', 'Read selected text with Human Reader');
+  readButton.hidden = true;
 
-let buttonState = "play";
-const setButtonState = (state) => {
-  if (state === "loading") {
-    buttonState = "loading";
-    ttsButton.src = chrome.runtime.getURL("images/spinner.svg");
-    ttsButton.disabled = true;
-  } else if (state === "play") {
-    buttonState = "play";
-    ttsButton.src = chrome.runtime.getURL("images/play.svg");
-    ttsButton.disabled = false;
-    audioElement.pause();
-  } else if (state === "speak") {
-    buttonState = "speak";
-    ttsButton.src = chrome.runtime.getURL("images/stop.svg");
-    ttsButton.disabled = false;
+  const toolbar = document.createElement('section');
+  toolbar.className = 'toolbar';
+  toolbar.setAttribute('aria-label', 'Human Reader playback');
+  toolbar.hidden = true;
+  const title = document.createElement('strong');
+  title.textContent = 'Human Reader';
+  const status = document.createElement('p');
+  status.setAttribute('role', 'status');
+  status.setAttribute('aria-live', 'polite');
+  const controls = document.createElement('div');
+  controls.className = 'controls';
+  const toggle = document.createElement('button');
+  toggle.type = 'button';
+  const stop = document.createElement('button');
+  stop.type = 'button';
+  stop.textContent = 'Stop';
+  const settings = document.createElement('button');
+  settings.type = 'button';
+  settings.textContent = 'Settings';
+  const dismiss = document.createElement('button');
+  dismiss.type = 'button';
+  dismiss.textContent = 'Dismiss';
+  controls.append(toggle, stop, settings, dismiss);
+  toolbar.append(title, status, controls);
+  root.append(readButton, toolbar);
+  document.documentElement.append(host);
+
+  let selection = null;
+  let showSelectionButton = true;
+  let playback = { status: 'idle', message: '' };
+  let requestVersion = 0;
+
+  function isEditable(node) {
+    const element = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
+    return Boolean(element && (element.closest('input, textarea, select') || element.isContentEditable));
   }
-};
 
-let textToPlay = "";
-const setTextToPlay = (text) => {
-  textToPlay = text;
-};
-
-const readStorage = async (keys) => {
-  return new Promise((resolve, reject) => {
-    chrome.storage.local.get(keys, function (result) {
-      resolve(result);
-    });
-  });
-};
-
-const fetchResponse = async () => {
-  const storage = await readStorage(["apiKey", "selectedVoiceId", "mode"]);
-  const selectedVoiceId = storage.selectedVoiceId
-    ? storage.selectedVoiceId
-    : "21m00Tcm4TlvDq8ikWAM"; //fallback Voice ID
-  const mode = storage.mode
-  const model_id =
-    (mode === "englishfast" || mode === "eleven_turbo_v2") ? "eleven_turbo_v2" :
-      (mode === "multilingual" || mode === "eleven_multilingual_v2") ? "eleven_multilingual_v2" :
-        "eleven_turbo_v2_5";
-
-  const response = await fetch(
-    `https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}/stream`,
-    {
-      method: "POST",
-      headers: {
-        Accept: codec,
-        "xi-api-key": storage.apiKey,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model_id: model_id,
-        text: textToPlay,
-        voice_settings: {
-          similarity_boost: 0.5,
-          stability: 0.5,
-        },
-      }),
+  function selectedText() {
+    const current = window.getSelection();
+    if (!current || current.isCollapsed || !current.rangeCount ||
+        isEditable(document.activeElement) || isEditable(current.anchorNode) || isEditable(current.focusNode)) {
+      return '';
     }
-  );
-  return response;
-};
+    return current.toString().trim();
+  }
 
-const handleMissingApiKey = () => {
-  setButtonState("speak");
-  const audio = new Audio(chrome.runtime.getURL("media/error-no-api-key.mp3"));
-  audio.play();
-  //since alert() is blocking, timeout is needed so audio plays while alert is visible.
-  setTimeout(() => {
-    alert(
-      "Please set your Elevenlabs API key in the extension settings to use Human Reader."
-    );
-    chrome.storage.local.clear();
-    setButtonState("play");
-  }, 100);
-};
-
-const clearBuffer = () => {
-  if (mediaSource.readyState === "open") {
-    const sourceBuffers = mediaSource.sourceBuffers;
-    for (let i = 0; i < sourceBuffers.length; i++) {
-      sourceBuffers[i].abort();
-      mediaSource.removeSourceBuffer(sourceBuffers[i]);
+  function render() {
+    const active = ['loading', 'playing', 'paused'].includes(playback.status);
+    const error = playback.status === 'error';
+    toolbar.hidden = !active && !error;
+    toolbar.classList.toggle('error', error);
+    status.textContent = playback.message || ({ loading: 'Preparing audio…', playing: 'Reading aloud', paused: 'Paused' }[playback.status] || '');
+    toggle.hidden = !['playing', 'paused'].includes(playback.status);
+    toggle.textContent = playback.status === 'paused' ? 'Resume' : 'Pause';
+    stop.hidden = !active;
+    settings.hidden = !error;
+    dismiss.hidden = !error;
+    readButton.hidden = !showSelectionButton || !selection || active || error;
+    if (!readButton.hidden) {
+      const width = readButton.offsetWidth || 110;
+      const height = readButton.offsetHeight || 38;
+      const left = Math.max(8, Math.min(selection.rect.right, window.innerWidth - width - 8));
+      const below = selection.rect.bottom + 8;
+      const top = below + height <= window.innerHeight - 8 ? below : selection.rect.top - height - 8;
+      readButton.style.left = `${left}px`;
+      readButton.style.top = `${Math.max(8, top)}px`;
     }
   }
-  audioElement.pause();
-  audioElement.src = "";
-  streamingCompleted = true;
-};
 
-const stopAudio = () => {
-  isStopped = true;
-  clearBuffer();
-  setButtonState("play");
-};
-
-let sourceOpenEventAdded = false;
-const streamAudio = async () => {
-  const storage = await readStorage(["apiKey", "speed"]);
-  if (!storage.apiKey) {
-    handleMissingApiKey();
-    return;
-  }
-  isStopped = false;
-  streamingCompleted = false;
-  audioElement.src = URL.createObjectURL(mediaSource);
-  const playbackRate = storage.speed ? storage.speed : 1;
-  audioElement.playbackRate = playbackRate;
-  audioElement.play();
-  if (!sourceOpenEventAdded) {
-    sourceOpenEventAdded = true;
-    mediaSource.addEventListener("sourceopen", () => {
-      const sourceBuffer = mediaSource.addSourceBuffer(codec);
-
-      let isAppending = false;
-      let appendQueue = [];
-
-      const processAppendQueue = () => {
-        if (!isAppending && appendQueue.length > 0) {
-          isAppending = true;
-          const chunk = appendQueue.shift();
-          if (chunk && mediaSource.sourceBuffers.length > 0) {
-            sourceBuffer.appendBuffer(chunk);
-          } else {
-            isAppending = false;
-          }
-        }
-      };
-
-      sourceBuffer.addEventListener("updateend", () => {
-        isAppending = false;
-        processAppendQueue();
-      });
-
-      const appendChunk = (chunk) => {
-        if (isStopped) return;
-
-        setButtonState("speak");
-        appendQueue.push(chunk);
-        processAppendQueue();
-
-        while (
-          mediaSource.duration - mediaSource.currentTime >
-          maxBufferDuration
-        ) {
-          const removeEnd = mediaSource.currentTime - maxBufferDuration;
-          sourceBuffer.remove(0, removeEnd);
-        }
-      };
-
-      const fetchAndAppendChunks = async () => {
-        try {
-          const response = await fetchResponse();
-
-          if (response.status === 401) {
-            const errorBody = await response.json();
-            const errorStatus = errorBody.detail.status
-            if (errorStatus === "detected_unusual_activity" || errorStatus === "quota_exceeded") {
-              alert(`MESSAGE FROM ELEVENLABS: ${errorBody.detail.message}`);
-            } else {
-              alert("Unauthorized. Please set your API key again.");
-              chrome.storage.local.clear();
-            }
-            setButtonState("play");
-            return;
-          }
-
-          if (!response.body) {
-            const errorMessage = "Error fetching audio, please try again";
-            alert(errorMessage);
-            console.error(errorMessage);
-            setButtonState("play");
-            return;
-          }
-
-          const reader = response.body.getReader();
-
-          while (true) {
-            const { done, value } = await reader.read();
-
-            if (done) {
-              // Signal the end of the stream
-              streamingCompleted = true;
-              break;
-            }
-
-            appendChunk(value.buffer);
-          }
-        } catch (error) {
-          setButtonState("play");
-          console.error("Error fetching and appending chunks:", error);
-        }
-      };
-      fetchAndAppendChunks();
-    });
-  }
-};
-
-async function onClickTtsButton() {
-  if (buttonState === "loading" || buttonState === "speak") {
-    stopAudio();
-    return;
-  }
-  setButtonState("loading");
-  try {
-    setTextToPlay(window.getSelection().toString());
-    await streamAudio();
-  } catch (error) {
-    console.error(error);
-    setButtonState("play");
-  }
-}
-
-audioElement.addEventListener("timeupdate", () => {
-  // This is a hacky way to deterimne that the audio has ended. I couldn't find a better way to do it.
-  // If you have an idea, please let me know.
-  const playbackEndThreshold = 0.5;
-  if (streamingCompleted) {
-    if (audioElement.buffered.length > 0) {
-      const bufferEndTime = audioElement.buffered.end(audioElement.buffered.length - 1);
-      const timeLeft = bufferEndTime - audioElement.currentTime;
-
-      if (timeLeft <= playbackEndThreshold) {
-        setButtonState("play");
+  function updateSelection() {
+    if (root.activeElement) return;
+    const text = selectedText();
+    const current = window.getSelection();
+    selection = null;
+    if (text) {
+      const rects = Array.from(current.getRangeAt(0).getClientRects());
+      const rect = rects.reverse().find(item => item.width > 0 && item.height > 0);
+      if (rect && rect.bottom > 0 && rect.top < window.innerHeight && rect.right > 0 && rect.left < window.innerWidth) {
+        selection = { text, rect };
       }
     }
-  }
-});
-
-document.addEventListener("selectionchange", function () {
-  const selection = window.getSelection();
-
-  if (!selection.anchorNode || !selection.focusNode) {
-    return;
+    render();
   }
 
-  // Detect if input element was selected
-  if (selection.anchorNode.tagName === "FORM" || selection.focusNode.tagName === "INPUT") {
-    return;
+  async function send(action, fields = {}) {
+    try {
+      const result = await chrome.runtime.sendMessage({ target: 'background', action, ...fields });
+      if (!result?.ok) throw new Error(result?.error || 'Human Reader could not respond. Reload this page and try again.');
+      return result;
+    } catch (error) {
+      return { ok: false, error: error.message || 'Reload this page to reconnect Human Reader.' };
+    }
   }
-  if (!selection.isCollapsed) {
-    const range = selection.getRangeAt(0);
-    const rects = range.getClientRects();
-    const lastRect = rects[rects.length - 1];
-    ttsButton.style.left = window.scrollX + lastRect.right + "px";
-    ttsButton.style.top = window.scrollY + lastRect.bottom + "px";
-    ttsButton.style.display = "block";
-  } else {
-    ttsButton.style.display = "none";
-  }
-  ttsButton.onclick = onClickTtsButton;
-});
 
-ttsButton.addEventListener("keydown", function (e) {
-  if (e.key === "Enter") {
-    onClickTtsButton();
+  async function command(action, fields = {}) {
+    const version = ++requestVersion;
+    if (action === 'read') {
+      playback = { status: 'loading', message: 'Preparing audio…' };
+      render();
+    }
+    const result = await send(action, fields);
+    if (version !== requestVersion) return;
+    if (!result.ok) playback = { status: 'error', message: result.error };
+    else if (result.state) playback = result.state;
+    render();
   }
-});
 
-// Receive sent message from background worker and trigger readOutLoud action
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === "readOutLoud") {
-    onClickTtsButton();
+  async function loadPreferences() {
+    const result = await send('getPreferences');
+    if (result.ok) {
+      showSelectionButton = result.showSelectionButton !== false;
+      updateSelection();
+      render();
+    }
   }
-  return true
-});
 
-document.addEventListener("keydown", function (e) {
-  if ((e.ctrlKey || e.metaKey) && e.key === "h") {
-    onClickTtsButton();
-  }
-});
+  readButton.addEventListener('pointerdown', event => event.preventDefault());
+  readButton.addEventListener('click', () => {
+    if (selection) void command('read', { text: selection.text });
+  });
+  toggle.addEventListener('click', () => void command('toggle'));
+  stop.addEventListener('click', () => void command('stop'));
+  settings.addEventListener('click', () => void command('openSettings'));
+  dismiss.addEventListener('click', () => {
+    ++requestVersion;
+    playback = { status: 'idle', message: '' };
+    selection = null;
+    render();
+  });
+  document.addEventListener('selectionchange', updateSelection);
+  document.addEventListener('pointerup', updateSelection);
+  window.addEventListener('scroll', updateSelection, { passive: true, capture: true });
+  window.addEventListener('resize', updateSelection, { passive: true });
+
+  chrome.runtime.onMessage.addListener((message, _sender, respond) => {
+    if (message.target === 'content' && message.action === 'getSelection') {
+      respond({ text: selectedText() });
+    } else if (message.target === 'ui' && message.action === 'playbackState') {
+      ++requestVersion;
+      playback = message.state;
+      render();
+    } else if (message.action === 'preferencesChanged') {
+      void loadPreferences();
+    } else if (message.target === 'content' && message.action === 'toggleSelection') {
+      const text = selectedText();
+      if (text) void command('read', { text });
+    }
+  });
+
+  void loadPreferences();
+})();
