@@ -84,3 +84,11 @@ test('legacy preferences migrate without resetting the voice or speed',()=>{
   assert.equal(result.mode,'removed');
   assert.equal(result.selectedVoiceId,'removed-voice');
 });
+
+
+test('new setups prefer v4 Turbo while saved model choices survive refresh', () => {
+  const catalog = { voices: [{ id: 'voice' }], models: [{ id: 'eleven_flash_v2_5' }, { id: 'eleven_v4_turbo' }] };
+  assert.equal(catalogSettings(normalizeSettings(), catalog).mode, 'eleven_v4_turbo');
+  assert.equal(catalogSettings(normalizeSettings({ mode: 'eleven_flash_v2_5' }), catalog).mode, 'eleven_flash_v2_5');
+  assert.equal(catalogSettings(normalizeSettings(), { ...catalog, models: [{ id: 'eleven_flash_v2_5' }] }).mode, 'eleven_flash_v2_5');
+});

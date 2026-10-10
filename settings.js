@@ -19,7 +19,7 @@ export function catalogSettings(settings, catalog, replacingKey = false) {
     ...catalog,
     selectedVoiceId: voice?.id || (!settings.selectedVoiceId || replacingKey ? catalog.voices[0]?.id || '' : settings.selectedVoiceId),
     mode: model?.id || (!settings.mode || replacingKey
-      ? catalog.models.find(model => model.id === 'eleven_flash_v2_5')?.id || catalog.models[0]?.id || ''
+      ? catalog.models.find(model => model.id === 'eleven_v4_turbo')?.id || catalog.models.find(model => model.id === 'eleven_flash_v2_5')?.id || catalog.models[0]?.id || ''
       : settings.mode),
   };
 }

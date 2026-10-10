@@ -5,7 +5,7 @@ Checked 2026-10-10. This report separates production-code tests from checks that
 ## Confirmed
 
 - Reproduced the original popup rejecting a valid restricted-key response because `/v1/user` lacked permission. The original error handler also cleared all saved settings.
-- `npm test` passes 46 tests covering API permission/error handling, paginated voices, dynamic models, selection limits, legacy preferences, failed key replacement, preview cancellation, stream completion, pause/resume races, cross-tab routing, worker restart, and offscreen lifecycle ordering.
+- `npm test` passes 47 tests covering API permission/error handling, paginated voices, dynamic models, selection limits, legacy preferences, failed key replacement, preview cancellation, stream completion, pause/resume races, cross-tab routing, worker restart, and offscreen lifecycle ordering.
 - `npm run check` validates the manifest, bundled file references, JavaScript syntax, and the credential boundary between content scripts and extension contexts.
 - Browser popup fixtures confirmed permission-specific guidance, successful connection, failed-key replacement preserving preferences, searchable voices, a missing preview, new model selection, 2.5× speed persistence, and disabled reading for an empty voice library.
 - A browser fixture ran the production content script, background router, API module, and player with simulated Chrome APIs and network responses. The browser decoded a real bundled MP3 through MediaSource, reached `ended` at 4.62 seconds of 4.62 seconds, retained its exact position through a pause longer than 30 seconds, resumed to completion, and aborted a request stopped before audio arrived. Audio was muted.
