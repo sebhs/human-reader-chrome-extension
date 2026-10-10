@@ -33,7 +33,6 @@ function connectionView(show) {
   $('connection').hidden = !show;
   $('reader').hidden = show;
   $('cancelConnection').hidden = !settings.apiKey;
-  $('connectionBadge').textContent = settings.apiKey ? 'Connected' : 'Setup';
   $('connect').textContent = settings.apiKey ? 'Save new key' : 'Connect';
   if (!show) stopPreview();
 }
@@ -69,13 +68,15 @@ function renderVoices() {
   }
   $('voices').value = settings.selectedVoiceId;
   $('voiceCount').textContent = !settings.voices.length ? 'Add a voice in ElevenLabs, then refresh.' : query ? `${matches.length} matching voice${matches.length === 1 ? '' : 's'}. Your selected voice stays available.` : `${settings.voices.length} voices in your library.`;
+  $('voiceCount').hidden = !!settings.voices.length && !query;
   voiceDetails();
   updateReadAvailability();
 }
 
 function modelDetails() {
   const model = settings.models.find(model => model.id === settings.mode);
-  $('modelDescription').title = model?.description || '';
+  $('modelDescription').hidden = !!model;
+  $('model').title = model?.description || '';
   $('modelDescription').textContent = model ? model.maxCharacters ? `Up to ${model.maxCharacters.toLocaleString()} characters per reading.` : 'Uses this model’s default voice settings.' : 'Refresh and choose an available model before reading.';
   updateReadAvailability();
 }
@@ -122,7 +123,7 @@ async function refreshCatalog(candidateKey = settings.apiKey, connect = false) {
     }
     renderSettings();
     const missing = !catalog.voices.some(voice => voice.id === settings.selectedVoiceId) || !catalog.models.some(model => model.id === settings.mode);
-    notice(missing ? 'A saved voice or model is unavailable. Choose an available option below.' : connect ? 'Connected. Voices and models loaded. Speech access is checked when you read.' : '', !missing);
+    notice(missing ? 'A saved voice or model is unavailable. Choose an available option below.' : '', !missing);
   } catch (error) {
     if (!controller.signal.aborted) notice(errorMessage(error));
   } finally {
@@ -141,6 +142,7 @@ function playbackState(state) {
   $('pause').hidden = !['playing', 'paused'].includes(state.status);
   $('pause').textContent = state.status === 'paused' ? 'Resume' : 'Pause';
   $('stop').hidden = !active;
+  $('playbackStatus').hidden = state.status === 'idle' && !state.message;
   $('playbackStatus').textContent = state.message || ({idle: 'Select text on a page, then press Read selection.', loading: 'Preparing your audio…', playing: 'Reading aloud.', paused: 'Reading paused.'}[state.status]) || 'Ready to read.';
 }
 

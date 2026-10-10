@@ -7,16 +7,11 @@
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
-  <header>
-    <span class="brandMark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 10v4m4-8v12m4-15v18m4-15v12m4-8v4"/></svg></span>
-    <div><h1>Human Reader</h1><p>Selected text, spoken aloud.</p></div>
-    <span id="connectionBadge" class="badge">Setup</span>
-  </header>
+  <header><h1>Human Reader</h1></header>
   <main>
     <p id="notice" class="notice" role="status" aria-live="polite" hidden></p>
     <section id="connection" aria-labelledby="connectionTitle">
       <h2 id="connectionTitle">Connect ElevenLabs</h2>
-      <p class="intro">Your voice library, right in your browser.</p>
       <ol class="steps">
         <li><a href="https://elevenlabs.io/app/developers/api-keys" target="_blank" rel="noreferrer">Create an API key in ElevenLabs ↗</a></li>
         <li>Keep <strong>Restrict Key</strong> on. Enable these permissions:
@@ -29,30 +24,33 @@
         <div class="keyRow"><input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your ElevenLabs key"><button id="showKey" type="button" class="quiet" aria-label="Show API key" aria-pressed="false">Show</button></div>
         <button id="connect" type="submit" class="primary wide">Connect</button>
       </form>
-      <p class="hint">No User access or write permissions needed. Connecting checks voices and models without generating speech.</p>
-      <p class="hint">Reading uses your ElevenLabs credits. You can set a credit cap on this key. The extension itself is free.</p>
+      <p class="hint">Reading uses ElevenLabs credits. Your key is saved on this device.</p>
       <button id="cancelConnection" class="textButton" hidden>Back to reader</button>
     </section>
     <section id="reader" aria-label="Reader settings" hidden>
       <div class="playback">
-        <p id="playbackStatus" role="status" aria-live="polite">Select text on a page, then press Read selection.</p>
+        <p id="playbackStatus" role="status" aria-live="polite" hidden></p>
         <div class="playbackButtons"><button id="read" class="primary">Read selection</button><button id="pause" class="secondary" hidden>Pause</button><button id="stop" class="secondary" hidden>Stop</button></div>
-        <p class="hint">Reading uses credits. Voice previews do not generate speech.</p>
       </div>
-      <div class="sectionHeading"><h2>Voice</h2><button id="refresh" class="textButton">Refresh</button></div>
+      <label for="voices">Voice</label>
       <label class="srOnly" for="voiceSearch">Search voices</label>
-      <input id="voiceSearch" type="search" placeholder="Search name, language or accent">
-      <div class="voiceRow"><label class="srOnly" for="voices">Voice</label><select id="voices"></select><button id="preview" class="secondary" aria-label="Preview selected voice">Preview</button></div>
+      <input id="voiceSearch" type="search" placeholder="Search voices">
+      <div class="voiceRow"><select id="voices"></select><button id="preview" class="secondary" aria-label="Preview selected voice">Preview</button></div>
       <p id="voiceDescription" hidden></p>
-      <div class="libraryMeta"><span id="voiceCount" class="hint"></span>
-      <a class="smallLink" href="https://elevenlabs.io/app/voice-library" target="_blank" rel="noreferrer">Add voices ↗</a></div>
+      <p id="voiceCount" class="hint" hidden></p>
       <div class="field"><label for="model">Model</label><select id="model"></select><p id="modelDescription" class="hint"></p></div>
-      <div class="field"><div class="sectionHeading"><label for="speed">Playback speed</label><output id="speedValue" for="speed">1×</output></div><input id="speed" type="range" min="0.5" max="2.5" step="0.25" value="1"><div class="rangeLabels"><span>0.5×</span><span>2.5×</span></div></div>
-      <label class="checkbox"><input id="selectionButton" type="checkbox" checked> Show a play button beside selected text</label>
-      <div class="accountRow"><span class="hint">Key saved on this device</span><button id="changeKey" class="textButton">Change key</button><button id="disconnect" class="textButton">Disconnect</button></div>
+      <div class="field"><div class="sectionHeading"><label for="speed">Speed</label><output id="speedValue" for="speed">1×</output></div><input id="speed" type="range" min="0.5" max="2.5" step="0.25" value="1"></div>
+      <details class="settings"><summary>Settings</summary>
+        <div class="settingsLinks"><button id="refresh" class="textButton">Refresh voices &amp; models</button><a href="https://elevenlabs.io/app/voice-library" target="_blank" rel="noreferrer">Add voices ↗</a></div>
+        <label class="checkbox"><input id="selectionButton" type="checkbox" checked> Show button beside selected text</label>
+        <div class="settingsLinks"><button id="shortcuts" class="textButton">Keyboard shortcuts</button></div>
+        <p id="shortcutHint" class="hint"></p>
+        <div class="settingsLinks"><button id="changeKey" class="textButton">Change API key</button><button id="disconnect" class="textButton">Disconnect</button></div>
+        <p class="hint">Reading uses ElevenLabs credits. Previews are free.</p>
+        <p class="hint">Selected text is sent to ElevenLabs when you read. Your key stays on this device. Independent extension by Seb.</p>
+      </details>
     </section>
   </main>
-  <footer><div class="footerLinks"><button id="shortcuts" class="textButton">Keyboard shortcuts</button><details><summary>About &amp; privacy</summary><p class="hint">Independent extension by Seb. Uses ElevenLabs. Selected text is sent to ElevenLabs only when you read it. Your key stays in local extension storage.</p></details></div><p id="shortcutHint" class="hint">Select text and right-click to read it.</p></footer>
   <script type="module" src="popup.js"></script>
 </body>
 </html>
