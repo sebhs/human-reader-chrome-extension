@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Human Reader, powered by ElevenLabs",
-  "version": "1.7",
-  "description": "Listen to any text in the web in a human voice. A simple extension powered by ElevenLabs to convert any text to speech.",
+  "version": "2.0.0",
+  "description": "Read selected text aloud with your ElevenLabs voices. Simple voice search, playback controls and your own API key.",
   "icons": {
     "16": "images/icon16.png",
     "48": "images/icon48.png",
@@ -18,28 +18,54 @@
   },
   "content_scripts": [
     {
-      "matches": ["<all_urls>"],
-      "js": ["content.js"],
-      "css": ["style.css"]
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content.js"
+      ]
     }
   ],
-  "host_permissions": ["<all_urls>"],
+  "host_permissions": [
+    "https://api.elevenlabs.io/*"
+  ],
   "web_accessible_resources": [
     {
       "resources": [
+        "style.css",
         "images/play.svg",
-        "images/spinner.svg",
-        "images/speak.svg",
         "images/stop.svg",
-        "media/error-no-api-key.mp3"
+        "images/spinner.svg"
       ],
-      "matches": ["<all_urls>"]
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ]
     }
   ],
-  "permissions": ["storage", "contextMenus"],
-
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "offscreen"
+  ],
   "background": {
     "service_worker": "background.js",
-    "persistent": false
+    "type": "module"
+  },
+  "minimum_chrome_version": "116",
+  "commands": {
+    "read-selection": {
+      "suggested_key": {
+        "default": "Alt+Shift+R"
+      },
+      "description": "Read selected text with Human Reader"
+    },
+    "stop-reading": {
+      "suggested_key": {
+        "default": "Alt+Shift+S"
+      },
+      "description": "Stop Human Reader"
+    }
   }
 }

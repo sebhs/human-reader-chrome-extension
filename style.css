@@ -1,10 +1,16 @@
-#ttsButton {
+[hidden] { display: none !important; }
+.read-selection {
   all: initial;
-  border-radius: 50%;
-  position: absolute;
-  filter: drop-shadow(0em 0.3em 0.8em rgba(0, 0, 0, 0.6));
+  box-sizing: border-box;
+  position: fixed;
   width: 20px;
   height: 20px;
-  background-color: #fff;
+  border-radius: 50%;
+  background: white;
   overflow: hidden;
+  filter: drop-shadow(0 .3em .8em rgba(0, 0, 0, .6));
+  cursor: pointer;
+  pointer-events: auto;
 }
+.read-selection img { display: block; width: 20px; height: 20px; }
+.read-selection:focus-visible { outline: 2px solid #004FE1; outline-offset: 3px; }

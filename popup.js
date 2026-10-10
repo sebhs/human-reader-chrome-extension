@@ -1,192 +1,228 @@
-const setStorageItem = async (key, value) => {
-  return new Promise((resolve, reject) => {
-    chrome.storage.local.set({ [key]: value }, function () {
-      if (chrome.runtime.lastError) {
-        reject(chrome.runtime.lastError);
-      } else {
-        resolve();
-      }
-    });
-  });
-};
+import {loadCatalog, errorMessage, safePreviewUrl} from './api.js';
+import {normalizeSettings, catalogSettings} from './settings.js';
 
-const readStorage = async (keys) => {
-  return new Promise((resolve, reject) => {
-    chrome.storage.local.get(keys, function (result) {
-      resolve(result);
-    });
-  });
-};
+const $ = id => document.getElementById(id);
+let settings = normalizeSettings();
+let catalogRequest;
+let previewAudio;
+let previewId = 0;
 
-const setWelcomeScreen = () => {
-  const settings = document.getElementById("settings");
-  const welcome = document.getElementById("welcome");
-  const info = document.getElementById("info");
-  settings.style.display = "none";
-  welcome.style.display = "block";
-  info.style.display = "none";
-};
+function notice(message = '', success = false) {
+  $('notice').textContent = message;
+  $('notice').hidden = !message;
+  $('notice').classList.toggle('success', success);
+}
 
-const setSettingsScreen = async () => {
-  const settings = document.getElementById("settings");
-  const welcome = document.getElementById("welcome");
-  const info = document.getElementById("info");
-  settings.style.display = "block";
-  welcome.style.display = "none";
-  info.style.display = "block";
-
-  //assumes storage is already set
-  storage = await readStorage(["mode", "speed"]);
-  document.getElementById("mode").value = storage.mode;
-  setSpeedValue(storage.speed || 1);
-};
-
-const setSpeedValue = (value) => {
-  document.getElementById("speedInput").value = value;
-  document.getElementById("speedValue").textContent = value + "x";
-};
-
-const loadStartupData = async () => {
-  const voices = await fetchVoices();
-  storage = await readStorage([
-    "apiKey",
-    "selectedVoiceId",
-    "mode",
-    "voices",
-    "speed",
-  ]);
-  const mode = storage.mode || "eleven_turbo_v2_5";
-  document.getElementById("mode").value = mode;
-  const speedValue = storage.speed || 1;
-  setSpeedValue(speedValue);
-
-  const selectedVoiceId = storage.selectedVoiceId || voices[0].id;
-  setStorageItem("selectedVoiceId", selectedVoiceId);
-  setStorageItem("mode", mode);
-};
-
-const populateVoices = async () => {
-  const storage = await readStorage(["voices", "selectedVoiceId"]);
-  const voices = storage.voices;
-  if (voices) {
-    const select = document.getElementById("voices");
-
-    select.innerHTML = ""; // Clear existing options
-
-    voices.forEach((voice) => {
-      const option = document.createElement("option");
-      option.value = voice.id;
-      option.text = voice.name;
-      select.appendChild(option);
-    });
-    const selectedVoiceId = storage.selectedVoiceId;
-    if (selectedVoiceId) select.value = selectedVoiceId;
+async function send(action, extra = {}) {
+  try {
+    const response = await chrome.runtime.sendMessage({target: 'background', action, ...extra});
+    if (!response?.ok) throw new Error(response?.error || 'The extension could not respond. Reload it and try again.');
+    return response;
+  } catch (error) {
+    notice(error.message);
+    return null;
   }
-};
+}
 
-const setAPIKey = async (apiKey) => {
-  const response = await fetch("https://api.elevenlabs.io/v1/user", {
-    method: "GET",
-    headers: {
-      "xi-api-key": apiKey,
-      "Content-Type": "application/json",
-    },
-  });
-  if (response.ok) {
-    await setStorageItem("apiKey", apiKey);
-  } else {
-    throw new Error("API request failed");
+async function save(values) {
+  await chrome.storage.local.set(values);
+  settings = {...settings, ...values};
+}
+
+function connectionView(show) {
+  $('connection').hidden = !show;
+  $('reader').hidden = show;
+  $('cancelConnection').hidden = !settings.apiKey;
+  $('connect').textContent = settings.apiKey ? 'Save new key' : 'Connect';
+  if (!show) stopPreview();
+}
+
+function stopPreview() {
+  previewId++;
+  previewAudio?.pause();
+  if (previewAudio) previewAudio.src = '';
+  previewAudio = null;
+  $('preview').textContent = 'Preview';
+}
+
+function voiceDetails() {
+  const voice = settings.voices.find(voice => voice.id === settings.selectedVoiceId);
+  const labels = Object.values(voice?.labels || {}).filter(value => typeof value === 'string');
+  $('voices').title = voice?.description || '';
+  $('voiceDescription').textContent = voice ? labels.join(' · ') || voice.description || 'Voice from your ElevenLabs library.' : 'Choose an available voice to start reading.';
+  $('preview').disabled = !safePreviewUrl(voice?.previewUrl);
+  $('preview').title = voice?.previewUrl ? 'Play the existing voice sample. No speech generation.' : 'No preview is available for this voice.';
+}
+
+function renderVoices() {
+  const query = $('voiceSearch').value.trim().toLowerCase();
+  const matches = settings.voices.filter(voice => [voice.name, voice.description, ...Object.values(voice.labels || {})].join(' ').toLowerCase().includes(query));
+  const selected = settings.voices.find(voice => voice.id === settings.selectedVoiceId);
+  const visible = selected && !matches.includes(selected) ? [selected, ...matches] : matches;
+  $('voices').replaceChildren();
+  if (!selected && settings.selectedVoiceId) $('voices').add(new Option('Saved voice unavailable — choose another', settings.selectedVoiceId));
+  if (!visible.length && !settings.selectedVoiceId) $('voices').add(new Option('No voices available', ''));
+  for (const voice of visible) {
+    const label = [voice.name, voice.labels?.language, voice.labels?.accent].filter(Boolean).join(' · ');
+    $('voices').add(new Option(label, voice.id));
   }
-};
+  $('voices').value = settings.selectedVoiceId;
+  $('voiceCount').textContent = !settings.voices.length ? 'Add a voice in ElevenLabs, then refresh.' : query ? `${matches.length} matching voice${matches.length === 1 ? '' : 's'}. Your selected voice stays available.` : `${settings.voices.length} voices in your library.`;
+  $('voiceCount').hidden = !!settings.voices.length && !query;
+  voiceDetails();
+}
 
-const fetchVoices = async () => {
-  const storage = await readStorage(["apiKey", "selectedVoiceId", "mode"]);
-  if (storage.apiKey) {
-    let response = await fetch("https://api.elevenlabs.io/v1/voices", {
-      method: "GET",
-      headers: {
-        "xi-api-key": storage.apiKey,
-        "Content-Type": "application/json",
-      },
-    });
-    if (!response.ok) {
-      if (response.status === 401) {
-        chrome.storage.local.clear();
-        throw new Error("Invalid API key");
-      } else {
-        console.error(`HTTP error! status: ${response.status}`);
-      }
-    } else {
-      response = await response.json();
-      if (response.voices) {
-        const voices = response.voices.map((voice) => {
-          return {
-            id: voice.voice_id,
-            name: voice.name,
-          };
-        });
-        await setStorageItem("voices", voices);
-        await populateVoices();
-        return voices;
-      }
+function modelDetails() {
+  const model = settings.models.find(model => model.id === settings.mode);
+  $('modelDescription').hidden = !!model;
+  $('model').title = model?.description || '';
+  $('modelDescription').textContent = model ? model.maxCharacters ? `Up to ${model.maxCharacters.toLocaleString()} characters per reading.` : 'Uses this model’s default voice settings.' : 'Refresh and choose an available model before reading.';
+}
+
+function renderSettings() {
+  renderVoices();
+  $('model').replaceChildren();
+  if (settings.mode && !settings.models.some(model => model.id === settings.mode)) $('model').add(new Option('Saved model unavailable — choose another', settings.mode));
+  for (const model of settings.models) $('model').add(new Option(model.name, model.id));
+  $('model').value = settings.mode;
+  modelDetails();
+  $('speed').value = settings.speed;
+  $('speedValue').textContent = `${settings.speed}×`;
+  $('selectionButton').checked = settings.showSelectionButton;
+}
+
+async function refreshCatalog(candidateKey = settings.apiKey, connect = false) {
+  catalogRequest?.abort();
+  const controller = new AbortController();
+  catalogRequest = controller;
+  $('refresh').disabled = true;
+  $('connect').disabled = true;
+  $('refresh').textContent = 'Refreshing…';
+  if (connect) $('connect').textContent = 'Connecting…';
+  notice();
+  try {
+    const catalog = await loadCatalog(candidateKey, {signal: controller.signal});
+    if (controller.signal.aborted) return;
+    const changedKey = connect && candidateKey !== settings.apiKey;
+    const values = catalogSettings(settings, catalog, changedKey);
+    if (connect) values.apiKey = candidateKey;
+    await save(values);
+    if (connect) {
+      $('apiKey').value = '';
+      $('apiKey').type = 'password';
+      $('showKey').textContent = 'Show';
+      $('showKey').setAttribute('aria-pressed', 'false');
+      $('showKey').setAttribute('aria-label', 'Show API key');
+      connectionView(false);
+    }
+    renderSettings();
+    const missing = !catalog.voices.some(voice => voice.id === settings.selectedVoiceId) || !catalog.models.some(model => model.id === settings.mode);
+    notice(missing ? 'A saved voice or model is unavailable. Choose an available option below.' : '', !missing);
+  } catch (error) {
+    if (!controller.signal.aborted) notice(errorMessage(error));
+  } finally {
+    if (catalogRequest === controller) {
+      $('refresh').disabled = false;
+      $('connect').disabled = false;
+      $('refresh').textContent = 'Refresh';
+      $('connect').textContent = settings.apiKey ? 'Save new key' : 'Connect';
     }
   }
-};
+}
 
-document.addEventListener("DOMContentLoaded", async () => {
-  const storage = await readStorage(["apiKey"]);
-  if (storage.apiKey) {
-    populateVoices();
-    setSettingsScreen();
-  } else {
-    setWelcomeScreen();
+function playbackState(state) {
+  if (!state) return;
+  const active = ['loading', 'playing', 'paused'].includes(state.status);
+  $('playback').hidden = !active;
+  if (state.status === 'error' && state.message) notice(state.message);
+  $('pause').hidden = !['playing', 'paused'].includes(state.status);
+  $('pause').textContent = state.status === 'paused' ? 'Resume' : 'Pause';
+  $('stop').hidden = !active;
+  $('playbackStatus').hidden = state.status === 'idle' && !state.message;
+  $('playbackStatus').textContent = state.message || ({idle: 'Select text on a page, then press Read selection.', loading: 'Preparing your audio…', playing: 'Reading aloud.', paused: 'Reading paused.'}[state.status]) || 'Ready to read.';
+}
+
+$('connectForm').addEventListener('submit', event => {
+  event.preventDefault();
+  refreshCatalog($('apiKey').value.trim(), true);
+});
+$('showKey').addEventListener('click', () => {
+  const show = $('apiKey').type === 'password';
+  $('apiKey').type = show ? 'text' : 'password';
+  $('showKey').textContent = show ? 'Hide' : 'Show';
+  $('showKey').setAttribute('aria-label', show ? 'Hide API key' : 'Show API key');
+  $('showKey').setAttribute('aria-pressed', String(show));
+});
+$('refresh').addEventListener('click', () => refreshCatalog());
+$('voiceSearch').addEventListener('input', renderVoices);
+$('voices').addEventListener('change', async event => {
+  stopPreview();
+  await save({selectedVoiceId: event.target.value});
+  voiceDetails();
+});
+$('model').addEventListener('change', async event => {
+  await save({mode: event.target.value});
+  modelDetails();
+});
+$('speed').addEventListener('input', async event => {
+  const speed = Number(event.target.value);
+  $('speedValue').textContent = `${speed}×`;
+  await save({speed});
+});
+$('selectionButton').addEventListener('change', event => save({showSelectionButton: event.target.checked}));
+$('preview').addEventListener('click', async () => {
+  if (previewAudio) return stopPreview();
+  const url = safePreviewUrl(settings.voices.find(voice => voice.id === settings.selectedVoiceId)?.previewUrl);
+  if (!url) return;
+  const id = ++previewId;
+  const result = await send('stop');
+  if (id !== previewId || !result) return;
+  previewAudio = new Audio(url);
+  previewAudio.playbackRate = settings.speed;
+  previewAudio.addEventListener('ended', () => { if (id === previewId) stopPreview(); });
+  previewAudio.addEventListener('error', () => {
+    if (id !== previewId) return;
+    stopPreview();
+    notice('This voice sample could not be played. You can still select the voice, or try another preview.');
+  });
+  $('preview').textContent = 'Stop';
+  try { await previewAudio.play(); } catch {
+    if (id !== previewId) return;
+    stopPreview();
+    notice('The preview could not play. Try another voice or open your ElevenLabs voice library.');
   }
 });
-
-const select = document.getElementById("voices");
-select.addEventListener("change", async (event) => {
-  const selectedVoiceId = event.target.value;
-  await setStorageItem("selectedVoiceId", selectedVoiceId);
+$('pause').addEventListener('click', async () => playbackState((await send('toggle'))?.state));
+$('stop').addEventListener('click', async () => playbackState((await send('stop'))?.state));
+$('changeKey').addEventListener('click', () => { stopPreview(); connectionView(true); notice(); $('apiKey').focus(); });
+$('cancelConnection').addEventListener('click', () => { catalogRequest?.abort(); $('apiKey').value = ''; connectionView(false); notice(); });
+$('disconnect').addEventListener('click', async () => {
+  catalogRequest?.abort();
+  stopPreview();
+  await send('stop');
+  await chrome.storage.local.remove(['apiKey', 'voices', 'models']);
+  settings = normalizeSettings({...settings, apiKey: '', voices: [], models: []});
+  $('apiKey').value = '';
+  connectionView(true);
+  notice('Disconnected. Your key was removed from this device.', true);
 });
-
-document.getElementById("setApiKey").addEventListener("click", async () => {
-  const button = document.getElementById("setApiKey");
-  const inputValue = document.getElementById("apiKey").value;
-  button.textContent = "...";
-  try {
-    await setAPIKey(inputValue);
-    await loadStartupData();
-    await setSettingsScreen();
-    button.textContent = "Set";
-  } catch (error) {
-    console.log(error);
-    chrome.storage.local.clear();
-    button.textContent = "Set";
-    setWelcomeScreen();
-    alert("Invalid API key, please try again.");
-    console.error(error);
-  }
+$('shortcuts').addEventListener('click', () => chrome.tabs.create({url: 'chrome://extensions/shortcuts'}));
+chrome.runtime.onMessage.addListener(message => {
+  if (message.target === 'ui' && message.action === 'playbackState') playbackState(message.state);
 });
+window.addEventListener('pagehide', () => { catalogRequest?.abort(); stopPreview(); });
+window.addEventListener('unhandledrejection', event => { event.preventDefault(); notice('Could not save this change. Please reopen Human Reader and try again.'); });
 
-document.getElementById("mode").addEventListener("change", async () => {
-  const mode = document.getElementById("mode").value;
-  await setStorageItem("mode", mode);
-});
-
-document.getElementById("speedInput").addEventListener("input", async (e) => {
-  const value = document.getElementById("speedInput").value;
-  setSpeedValue(value);
-  await setStorageItem("speed", value);
-});
-
-document.getElementById("clearStorage").addEventListener("click", function () {
-  if (
-    confirm(
-      "Are you sure you want to clear your data? This will remove your API key and all your settings."
-    )
-  ) {
-    chrome.storage.local.clear();
-    setWelcomeScreen();
-    document.getElementById("apiKey").value = "";
-  }
-});
+try {
+  settings = normalizeSettings(await chrome.storage.local.get(null));
+  await save({mode: settings.mode, speed: settings.speed});
+  connectionView(!settings.apiKey);
+  renderSettings();
+  playbackState((await send('getPlayback'))?.state);
+  const commands = await chrome.commands.getAll();
+  const shortcut = commands.find(command => command.name === 'read-selection')?.shortcut;
+  $('shortcutHint').textContent = shortcut ? `${shortcut} to read, or right-click selected text.` : 'Set a reading shortcut, or right-click selected text to read it.';
+  if (settings.apiKey) refreshCatalog();
+} catch {
+  notice('Could not load extension settings. Reload Human Reader from chrome://extensions and try again.');
+}

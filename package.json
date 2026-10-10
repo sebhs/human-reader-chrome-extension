@@ -1,0 +1,8 @@
+{
+  "name": "human-reader-chrome-extension",
+  "version": "2.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {"test": "node --test tests/*.test.js", "check": "node scripts/check.mjs", "preview": "node scripts/preview.mjs"},
+  "engines": {"node": ">=20"}
+}

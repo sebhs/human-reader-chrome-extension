@@ -1,119 +1,57 @@
-<!DOCTYPE html>
-<html>
-  <head>
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="popup.css" />
-  </head>
-  <body>
-    <div class="topSection">
-      <div class="header">Human Reader</div>
-      <div class="header-suffix">
-        powered by
-        <a href="https://elevenlabs.io" target="_blank">ElevenLabs</a>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Human Reader</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <header><h1>Human Reader</h1></header>
+  <main>
+    <p id="notice" class="notice" role="status" aria-live="polite" hidden></p>
+    <section id="connection" aria-labelledby="connectionTitle">
+      <h2 id="connectionTitle">Connect ElevenLabs</h2>
+      <p class="hint">New to ElevenLabs? <a href="https://elevenlabs.io/?from=partnerlove324" target="_blank" rel="noopener sponsored">Create an account</a> (affiliate link).</p>
+      <ol class="steps">
+        <li><a href="https://elevenlabs.io/app/developers/api-keys" target="_blank" rel="noreferrer">Create an API key in ElevenLabs ↗</a></li>
+        <li>Keep <strong>Restrict Key</strong> on. Enable these permissions:
+          <dl class="permissions"><div><dt>Text to Speech</dt><dd>Access</dd></div><div><dt>Voices</dt><dd>Read</dd></div><div><dt>Models</dt><dd>Read</dd></div></dl>
+        </li>
+        <li>Copy the <strong>secret key</strong> shown when you create it. A key name or Key ID will not work.</li>
+      </ol>
+      <form id="connectForm">
+        <label for="apiKey">Secret API key</label>
+        <div class="keyRow"><input id="apiKey" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your ElevenLabs key"><button id="showKey" type="button" class="quiet" aria-label="Show API key" aria-pressed="false">Show</button></div>
+        <button id="connect" type="submit" class="primary wide">Connect</button>
+      </form>
+      <p class="hint">Reading uses ElevenLabs credits. Your key is saved on this device.</p>
+      <button id="cancelConnection" class="textButton" hidden>Back to reader</button>
+    </section>
+    <section id="reader" aria-label="Reader settings" hidden>
+      <div id="playback" class="playback" hidden>
+        <p id="playbackStatus" role="status" aria-live="polite" hidden></p>
+        <div class="playbackButtons"><button id="pause" class="secondary" hidden>Pause</button><button id="stop" class="secondary" hidden>Stop</button></div>
       </div>
-    </div>
-    <!-- With valid API key -->
-    <div id="settings">
-      <div class="settingsItem">
-        <label for="voices">Voice:</label>
-        <select id="voices"></select>
-      </div>
-      <div class="settingsItemNoPadding">
-        <label for="mode">Model:</label>
-        <select id="mode">
-          <option value="eleven_turbo_v2">Turbo v2</option>
-          <option value="eleven_turbo_v2_5">Turbo v2.5</option>
-          <option value="eleven_multilingual_v2">Multilingual v2</option>
-        </select>
-      </div>
-      <div class="settingsItemNoPadding">
-        <p>
-          Read
-          <a
-            href="https://help.elevenlabs.io/hc/en-us/articles/13313366263441-What-languages-do-you-support"
-            target="_blank"
-            >here</a
-          >
-          for the differences in models and supported languages.
-        </p>
-      </div>
-      <div class="settingsItem">
-        <label for="speed">Speed:</label>
-        <span id="speedValue">1x</span>
-        <input
-          type="range"
-          min="0.5"
-          max="2.5"
-          step="0.25"
-          value="1"
-          list="tickmarks"
-          id="speedInput"
-        />
-        <datalist id="tickmarks">
-          <option value="0.5" label="0.5x"></option>
-          <option value="0.75" label="0.75x"></option>
-          <option value="1" label="1x"></option>
-          <option value="1.25" label="1.25x"></option>
-          <option value="1.5" label="1.5x"></option>
-          <option value="1.75" label="1.75x"></option>
-          <option value="2" label="2x"></option>
-          <option value="2.25" label="2.25x"></option>
-          <option value="2.5" label="2.5x"></option>
-        </datalist>
-      </div>
-      <div class="clearStorage">
-        <a href="#" id="clearStorage">Clear all data</a>
-      </div>
-    </div>
-
-    <!-- Without valid API key/Setup -->
-    <div id="welcome">
-      <h3>Welcome</h3>
-      <div>
-        To get started, you need to:
-        <ul>
-          <li>
-            Create an account (or log in) on
-            <a href="https://elevenlabs.io/?from=partnerlove324" target="_blank"
-              >elevenlabs.io</a
-            >
-          </li>
-          <li>
-            Go to your profile page and copy your API key
-            <a
-              href="https://help.elevenlabs.io/hc/en-us/articles/14599447207697-How-to-authorize-yourself-using-your-xi-api-key"
-              target="_blank"
-              >like this</a
-            >
-          </li>
-          <li>Paste the API key into the input field below</li>
-          <li>Click "Set" to get started</li>
-        </ul>
-      </div>
-      <div class="welcomeInput">
-        <label for="apiKey">API Key:</label>
-        <input type="text" id="apiKey" />
-        <button id="setApiKey">Set</button>
-      </div>
-    </div>
-
-    <div id="info">
-      <p>
-        Don't see the play button? You can also use the right-click context
-        menu.
-      </p>
-
-      <p>
-        Use shortcut <span class="shortcut">ctrl+h</span> to play/pause selected
-        text.
-      </p>
-
-      This Chrome extension was created by
-      <a href="https://twitter.com/sebselassie" target="_blank">Seb</a>. v1.7.
-    </div>
-    <script src="popup.js"></script>
-  </body>
+      <label for="voices">Voice</label>
+      <label class="srOnly" for="voiceSearch">Search voices</label>
+      <input id="voiceSearch" type="search" placeholder="Search voices">
+      <div class="voiceRow"><select id="voices"></select><button id="preview" class="secondary" aria-label="Preview selected voice">Preview</button></div>
+      <p id="voiceDescription" hidden></p>
+      <p id="voiceCount" class="hint" hidden></p>
+      <div class="field"><label for="model">Model</label><select id="model"></select><p id="modelDescription" class="hint"></p></div>
+      <div class="field"><div class="sectionHeading"><label for="speed">Speed</label><output id="speedValue" for="speed">1×</output></div><input id="speed" type="range" min="0.5" max="2.5" step="0.25" value="1"></div>
+      <details class="settings"><summary>Settings</summary>
+        <div class="settingsLinks"><button id="refresh" class="textButton">Refresh voices &amp; models</button><a href="https://elevenlabs.io/app/voice-library" target="_blank" rel="noreferrer">Add voices ↗</a></div>
+        <label class="checkbox"><input id="selectionButton" type="checkbox" checked> Show button beside selected text</label>
+        <div class="settingsLinks"><button id="shortcuts" class="textButton">Keyboard shortcuts</button></div>
+        <p id="shortcutHint" class="hint"></p>
+        <div class="settingsLinks"><button id="changeKey" class="textButton">Change API key</button><button id="disconnect" class="textButton">Disconnect</button></div>
+        <p class="hint">Reading uses ElevenLabs credits. Previews are free.</p>
+        <p class="hint">Selected text is sent to ElevenLabs when you read. Your key stays on this device. Independent extension by Seb.</p>
+      </details>
+    </section>
+  </main>
+  <script type="module" src="popup.js"></script>
+</body>
 </html>
