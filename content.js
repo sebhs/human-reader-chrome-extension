@@ -1,17 +1,11 @@
 (() => {
   const host = document.createElement('human-reader-controls');
   host.style.setProperty('all', 'initial', 'important');
-  host.style.setProperty('font-family', 'HumanReaderInter, Inter, -apple-system, sans-serif', 'important');
-  host.style.setProperty('font-size', '14px', 'important');
-  host.style.setProperty('line-height', '1.45', 'important');
-  host.style.setProperty('color', '#252525', 'important');
   host.style.setProperty('position', 'fixed', 'important');
   host.style.setProperty('inset', '0', 'important');
   host.style.setProperty('pointer-events', 'none', 'important');
   host.style.setProperty('z-index', '2147483647', 'important');
   const root = host.attachShadow({ mode: 'open' });
-  const font = new FontFace('HumanReaderInter', `url(${chrome.runtime.getURL('fonts/InterVariable.woff2')})`, { weight: '100 900' });
-  font.load().then(loaded => document.fonts.add(loaded)).catch(() => {});
   const stylesheet = document.createElement('link');
   stylesheet.rel = 'stylesheet';
   stylesheet.href = chrome.runtime.getURL('style.css');
@@ -20,41 +14,20 @@
   const readButton = document.createElement('button');
   readButton.type = 'button';
   readButton.className = 'read-selection';
-  readButton.textContent = 'Read aloud';
+  const icon = document.createElement('img');
+  icon.alt = '';
+  readButton.append(icon);
   readButton.setAttribute('aria-label', 'Read selected text with Human Reader');
   readButton.hidden = true;
 
-  const toolbar = document.createElement('section');
-  toolbar.className = 'toolbar';
-  toolbar.setAttribute('aria-label', 'Human Reader playback');
-  toolbar.hidden = true;
-  const title = document.createElement('strong');
-  title.textContent = 'Human Reader';
-  const status = document.createElement('p');
-  status.setAttribute('role', 'status');
-  status.setAttribute('aria-live', 'polite');
-  const controls = document.createElement('div');
-  controls.className = 'controls';
-  const toggle = document.createElement('button');
-  toggle.type = 'button';
-  const stop = document.createElement('button');
-  stop.type = 'button';
-  stop.textContent = 'Stop';
-  const settings = document.createElement('button');
-  settings.type = 'button';
-  settings.textContent = 'Settings';
-  const dismiss = document.createElement('button');
-  dismiss.type = 'button';
-  dismiss.textContent = 'Dismiss';
-  controls.append(toggle, stop, settings, dismiss);
-  toolbar.append(title, status, controls);
-  root.append(readButton, toolbar);
+  root.append(readButton);
   document.documentElement.append(host);
 
   let selection = null;
   let showSelectionButton = true;
   let playback = { status: 'idle', message: '' };
   let requestVersion = 0;
+  let notifiedError = '';
 
   function isEditable(node) {
     const element = node?.nodeType === Node.ELEMENT_NODE ? node : node?.parentElement;
@@ -73,20 +46,21 @@
   function render() {
     const active = ['loading', 'playing', 'paused'].includes(playback.status);
     const error = playback.status === 'error';
-    toolbar.hidden = !active && !error;
-    toolbar.classList.toggle('error', error);
-    status.textContent = playback.message || ({ loading: 'Preparing audio…', playing: 'Reading aloud', paused: 'Paused' }[playback.status] || '');
-    toggle.hidden = !['playing', 'paused'].includes(playback.status);
-    toggle.textContent = playback.status === 'paused' ? 'Resume' : 'Pause';
-    stop.hidden = !active;
-    settings.hidden = !error;
-    dismiss.hidden = !error;
-    readButton.hidden = !showSelectionButton || !selection || active || error;
+    const label = active ? 'Stop reading' : 'Read selected text with Human Reader';
+    readButton.setAttribute('aria-label', label);
+    readButton.title = label;
+    icon.src = chrome.runtime.getURL(`images/${playback.status === 'loading' ? 'spinner' : active ? 'stop' : 'play'}.svg`);
+    readButton.hidden = !showSelectionButton || !selection;
+    if (!error) notifiedError = '';
+    if (error && playback.message && notifiedError !== playback.message) {
+      notifiedError = playback.message;
+      window.alert(playback.message);
+    }
     if (!readButton.hidden) {
-      const width = readButton.offsetWidth || 110;
-      const height = readButton.offsetHeight || 38;
+      const width = readButton.offsetWidth || 20;
+      const height = readButton.offsetHeight || 20;
       const left = Math.max(8, Math.min(selection.rect.right, window.innerWidth - width - 8));
-      const below = selection.rect.bottom + 8;
+      const below = selection.rect.bottom;
       const top = below + height <= window.innerHeight - 8 ? below : selection.rect.top - height - 8;
       readButton.style.left = `${left}px`;
       readButton.style.top = `${Math.max(8, top)}px`;
@@ -142,16 +116,8 @@
 
   readButton.addEventListener('pointerdown', event => event.preventDefault());
   readButton.addEventListener('click', () => {
-    if (selection) void command('read', { text: selection.text });
-  });
-  toggle.addEventListener('click', () => void command('toggle'));
-  stop.addEventListener('click', () => void command('stop'));
-  settings.addEventListener('click', () => void command('openSettings'));
-  dismiss.addEventListener('click', () => {
-    ++requestVersion;
-    playback = { status: 'idle', message: '' };
-    selection = null;
-    render();
+    if (['loading', 'playing', 'paused'].includes(playback.status)) void command('stop');
+    else if (selection) void command('read', { text: selection.text });
   });
   document.addEventListener('selectionchange', updateSelection);
   document.addEventListener('pointerup', updateSelection);
@@ -173,5 +139,12 @@
     }
   });
 
+  const initialVersion = requestVersion;
+  void send('getPlayback').then(result => {
+    if (result.ok && result.state && requestVersion === initialVersion) {
+      playback = result.state;
+      render();
+    }
+  });
   void loadPreferences();
 })();

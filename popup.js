@@ -70,7 +70,6 @@ function renderVoices() {
   $('voiceCount').textContent = !settings.voices.length ? 'Add a voice in ElevenLabs, then refresh.' : query ? `${matches.length} matching voice${matches.length === 1 ? '' : 's'}. Your selected voice stays available.` : `${settings.voices.length} voices in your library.`;
   $('voiceCount').hidden = !!settings.voices.length && !query;
   voiceDetails();
-  updateReadAvailability();
 }
 
 function modelDetails() {
@@ -78,11 +77,6 @@ function modelDetails() {
   $('modelDescription').hidden = !!model;
   $('model').title = model?.description || '';
   $('modelDescription').textContent = model ? model.maxCharacters ? `Up to ${model.maxCharacters.toLocaleString()} characters per reading.` : 'Uses this model’s default voice settings.' : 'Refresh and choose an available model before reading.';
-  updateReadAvailability();
-}
-
-function updateReadAvailability() {
-  $('read').disabled = !settings.voices.some(voice => voice.id === settings.selectedVoiceId) || !settings.models.some(model => model.id === settings.mode);
 }
 
 function renderSettings() {
@@ -139,6 +133,8 @@ async function refreshCatalog(candidateKey = settings.apiKey, connect = false) {
 function playbackState(state) {
   if (!state) return;
   const active = ['loading', 'playing', 'paused'].includes(state.status);
+  $('playback').hidden = !active;
+  if (state.status === 'error' && state.message) notice(state.message);
   $('pause').hidden = !['playing', 'paused'].includes(state.status);
   $('pause').textContent = state.status === 'paused' ? 'Resume' : 'Pause';
   $('stop').hidden = !active;
@@ -163,7 +159,6 @@ $('voices').addEventListener('change', async event => {
   stopPreview();
   await save({selectedVoiceId: event.target.value});
   voiceDetails();
-  updateReadAvailability();
 });
 $('model').addEventListener('change', async event => {
   await save({mode: event.target.value});
@@ -197,7 +192,6 @@ $('preview').addEventListener('click', async () => {
     notice('The preview could not play. Try another voice or open your ElevenLabs voice library.');
   }
 });
-$('read').addEventListener('click', async () => { stopPreview(); notice(); const result = await send('readSelection'); playbackState(result?.state); });
 $('pause').addEventListener('click', async () => playbackState((await send('toggle'))?.state));
 $('stop').addEventListener('click', async () => playbackState((await send('stop'))?.state));
 $('changeKey').addEventListener('click', () => { stopPreview(); connectionView(true); notice(); $('apiKey').focus(); });

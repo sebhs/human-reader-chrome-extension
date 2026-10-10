@@ -156,7 +156,11 @@ export function createBackground(chrome) {
         }
         return getPlayback();
       }
-      case 'getPlayback': return getPlayback();
+      case 'getPlayback': {
+        const result = await getPlayback();
+        if (sender.tab && result.state.sourceTabId !== sender.tab.id) return { ok: true, state: { status: 'idle', message: '', sourceTabId: sender.tab.id } };
+        return result;
+      }
       case 'readSelection': return readSelection();
       case 'openSettings':
         try { await chrome.action.openPopup(); }

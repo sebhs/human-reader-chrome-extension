@@ -34,7 +34,9 @@
     {
       "resources": [
         "style.css",
-        "fonts/InterVariable.woff2"
+        "images/play.svg",
+        "images/stop.svg",
+        "images/spinner.svg"
       ],
       "matches": [
         "http://*/*",

@@ -20,7 +20,7 @@ If the secret is no longer visible, create a new key. Do not remove restrictions
 
 ## Read a passage
 
-Select text on a normal webpage, then click **Read aloud**, choose **Read selection with Human Reader** in the right-click menu, or open the popup and click **Read selection**.
+Select text on a normal webpage, then click the small play icon, choose **Read selection with Human Reader** in the right-click menu.
 
 The page shows Pause, Resume, and Stop while reading. Stop cancels the network request, although ElevenLabs may still charge for work already generated. Starting another passage stops the previous reading. You can also stop audio from the popup after leaving the original page.
 
@@ -67,7 +67,7 @@ npm run preview
 
 Open the preview's local URL for a popup fixture. Use `?scenario=empty` for an empty voice library. The fixture accepts `fixture-secret`, reports a permission error for `missing-voices`, and simulates a connection failure for `offline`. Do not enter real keys in the fixture.
 
-Open `/tests/player.html` on that server for the production streaming player and selection controls with simulated Chrome APIs and a muted bundled MP3. This checks actual browser decoding, selection, pause, stop, and completion without spending credits. It does not replace an unpacked-extension smoke test with your account.
+Open `/tests/player.html` on that server for the production streaming player and selection controls with simulated Chrome APIs and a muted bundled MP3. This checks actual browser decoding, selection, stop, and completion without spending credits. It does not replace an unpacked-extension smoke test with your account.
 
 See [verification notes](docs/verification.md) and [reviewed feedback](docs/feedback.md).
 
@@ -84,7 +84,7 @@ Local extension storage is not an encrypted secret vault. Your browser profile a
 - Restricted-key setup with exact permission guidance.
 - Searchable voices, sample previews, and dynamic models.
 - Reliable streaming, cancellation, complete endings, and pause/resume.
-- Configurable shortcuts, persistent playback controls, and saved-setting migration.
+- Configurable shortcuts, play/stop selection icon and popup playback controls, and saved-setting migration.
 
 [MIT license](LICENSE)
 

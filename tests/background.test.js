@@ -230,3 +230,14 @@ test('upgraded users can read with legacy model preferences before opening the p
   await background.read('hello', 1);
   assert.equal(messages.find(message => message.action === 'start').settings.mode, 'eleven_turbo_v2');
 });
+
+test('reloaded page restores its playback while other tabs remain idle', async () => {
+  const { chrome } = setup();
+  chrome.runtime.getContexts = async () => [{}];
+  chrome.runtime.sendMessage = async message => message.action === 'getState'
+    ? { requestId: 'existing', state: { status: 'playing', message: '', sourceTabId: 12 } } : {};
+  const background = createBackground(chrome);
+  assert.equal((await background.handle({ action: 'getPlayback' }, { tab: { id: 12 } })).state.status, 'playing');
+  assert.equal((await background.handle({ action: 'getPlayback' }, { tab: { id: 13 } })).state.status, 'idle');
+  assert.equal((await background.handle({ action: 'getPlayback' })).state.status, 'playing');
+});
