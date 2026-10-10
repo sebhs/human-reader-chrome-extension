@@ -6,6 +6,8 @@ Read selected text aloud with voices from your ElevenLabs account. Human Reader 
 
 ## Connect your account
 
+New to ElevenLabs? [Create an account](https://elevenlabs.io/?from=partnerlove324) using the creator’s affiliate link.
+
 1. Open [ElevenLabs → Developers → API Keys](https://elevenlabs.io/app/developers/api-keys).
 2. Create a key for Human Reader. Keep **Restrict Key** enabled.
 3. Give **Text to Speech** access, **Voices** read access, and **Models** read access. You do not need User access or any write permission.
