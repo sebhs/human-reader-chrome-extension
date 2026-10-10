@@ -33,7 +33,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "style.css"
+        "style.css",
+        "fonts/InterVariable.woff2"
       ],
       "matches": [
         "http://*/*",

@@ -225,7 +225,7 @@ try {
   playbackState((await send('getPlayback'))?.state);
   const commands = await chrome.commands.getAll();
   const shortcut = commands.find(command => command.name === 'read-selection')?.shortcut;
-  $('shortcutHint').textContent = shortcut ? `${shortcut} reads selected text. You can also right-click a selection.` : 'Set a reading shortcut, or right-click selected text to read it.';
+  $('shortcutHint').textContent = shortcut ? `${shortcut} to read, or right-click selected text.` : 'Set a reading shortcut, or right-click selected text to read it.';
   if (settings.apiKey) refreshCatalog();
 } catch {
   notice('Could not load extension settings. Reload Human Reader from chrome://extensions and try again.');

@@ -85,3 +85,7 @@ Local extension storage is not an encrypted secret vault. Your browser profile a
 - Configurable shortcuts, persistent playback controls, and saved-setting migration.
 
 [MIT license](LICENSE)
+
+### Typography and colors
+
+Inter is bundled locally under the SIL Open Font License in `fonts/OFL.txt`. The interface uses the neutral and blue palette from [telli’s brand kit](https://www.telli.com/brand-kit). Human Reader is independent of telli.

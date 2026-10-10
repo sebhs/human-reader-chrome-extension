@@ -8,8 +8,8 @@
 </head>
 <body>
   <header>
-    <img src="images/icon48.png" width="32" height="32" alt="">
-    <div><h1>Human Reader</h1><p>Listen at your own pace.</p></div>
+    <span class="brandMark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 10v4m4-8v12m4-15v18m4-15v12m4-8v4"/></svg></span>
+    <div><h1>Human Reader</h1><p>Selected text, spoken aloud.</p></div>
     <span id="connectionBadge" class="badge">Setup</span>
   </header>
   <main>
@@ -39,7 +39,7 @@
         <div class="playbackButtons"><button id="read" class="primary">Read selection</button><button id="pause" class="secondary" hidden>Pause</button><button id="stop" class="secondary" hidden>Stop</button></div>
         <p class="hint">Reading uses credits. Voice previews do not generate speech.</p>
       </div>
-      <div class="sectionHeading"><h2>Your voice</h2><button id="refresh" class="textButton">Refresh</button></div>
+      <div class="sectionHeading"><h2>Voice</h2><button id="refresh" class="textButton">Refresh</button></div>
       <label class="srOnly" for="voiceSearch">Search voices</label>
       <input id="voiceSearch" type="search" placeholder="Search name, language or accent">
       <div class="voiceRow"><label class="srOnly" for="voices">Voice</label><select id="voices"></select><button id="preview" class="secondary" aria-label="Preview selected voice">Preview</button></div>

@@ -1,9 +1,9 @@
 :host {
   color-scheme: light;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: HumanReaderInter, Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 14px;
   line-height: 1.45;
-  color: #242235;
+  color: #252525;
 }
 
 * { box-sizing: border-box; }
@@ -14,29 +14,29 @@ button {
   font: inherit;
   font-weight: 600;
   line-height: 1.2;
-  border: 1px solid #dcd9e8;
+  border: 1px solid #E5E3DD;
   border-radius: 8px;
   padding: 9px 12px;
-  color: #373347;
-  background: #fffefa;
+  color: #252525;
+  background: #FCFAF5;
   cursor: pointer;
   pointer-events: auto;
 }
 
-button:hover { background: #efedf8; }
-button:focus-visible { outline: 3px solid #a99feb; outline-offset: 3px; }
+button:hover { background: #E8EEFC; }
+button:focus-visible { outline: 3px solid #A9C6FF; outline-offset: 3px; }
 
 .read-selection {
   position: fixed;
   color: white;
-  background: #6556d9;
-  border-color: #6556d9;
+  background: #004FE1;
+  border-color: #004FE1;
   border-radius: 10px;
-  box-shadow: 0 4px 16px #24223526;
+  box-shadow: 0 4px 16px #25252526;
   white-space: nowrap;
 }
 
-.read-selection:hover { background: #5445c2; }
+.read-selection:hover { background: #003F95; }
 
 .toolbar {
   position: fixed;
@@ -47,16 +47,16 @@ button:focus-visible { outline: 3px solid #a99feb; outline-offset: 3px; }
   max-height: calc(100vh - 24px);
   overflow: auto;
   padding: 16px;
-  border: 1px solid #dedbe8;
+  border: 1px solid #E5E3DD;
   border-radius: 16px;
-  background: #fffefa;
-  box-shadow: 0 6px 30px #24223524;
+  background: #FCFAF5;
+  box-shadow: 0 6px 30px #25252524;
   pointer-events: auto;
   text-align: left;
 }
 
 strong { font-size: 14px; font-weight: 650; }
-p { margin: 6px 0 12px; color: #655f75; overflow-wrap: anywhere; }
+p { margin: 6px 0 12px; color: #74736F; overflow-wrap: anywhere; }
 .controls { display: flex; flex-wrap: wrap; gap: 8px; }
 .error p { color: #963f36; }
 

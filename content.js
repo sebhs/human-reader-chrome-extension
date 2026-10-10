@@ -1,15 +1,17 @@
 (() => {
   const host = document.createElement('human-reader-controls');
   host.style.setProperty('all', 'initial', 'important');
-  host.style.setProperty('font-family', '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', 'important');
+  host.style.setProperty('font-family', 'HumanReaderInter, Inter, -apple-system, sans-serif', 'important');
   host.style.setProperty('font-size', '14px', 'important');
   host.style.setProperty('line-height', '1.45', 'important');
-  host.style.setProperty('color', '#242235', 'important');
+  host.style.setProperty('color', '#252525', 'important');
   host.style.setProperty('position', 'fixed', 'important');
   host.style.setProperty('inset', '0', 'important');
   host.style.setProperty('pointer-events', 'none', 'important');
   host.style.setProperty('z-index', '2147483647', 'important');
   const root = host.attachShadow({ mode: 'open' });
+  const font = new FontFace('HumanReaderInter', `url(${chrome.runtime.getURL('fonts/InterVariable.woff2')})`, { weight: '100 900' });
+  font.load().then(loaded => document.fonts.add(loaded)).catch(() => {});
   const stylesheet = document.createElement('link');
   stylesheet.rel = 'stylesheet';
   stylesheet.href = chrome.runtime.getURL('style.css');

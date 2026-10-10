@@ -5,7 +5,7 @@ const manifest=JSON.parse(await readFile('manifest.json','utf8'));
 assert.equal(manifest.manifest_version,3);
 assert.equal(manifest.background.type,'module');
 assert.deepEqual(manifest.host_permissions,['https://api.elevenlabs.io/*']);
-for(const file of ['popup.html','offscreen.html',manifest.background.service_worker,...manifest.content_scripts.flatMap(item=>item.js),...manifest.web_accessible_resources.flatMap(item=>item.resources),...Object.values(manifest.icons)])await access(file);
+for(const file of ['fonts/InterVariable.woff2','fonts/OFL.txt','popup.html','offscreen.html',manifest.background.service_worker,...manifest.content_scripts.flatMap(item=>item.js),...manifest.web_accessible_resources.flatMap(item=>item.resources),...Object.values(manifest.icons)])await access(file);
 for(const file of (await readdir('.')).filter(file=>file.endsWith('.js')))execFileSync(process.execPath,['--check',file]);
 const content=await readFile('content.js','utf8');
 assert(!/\bfetch\(|chrome\.storage|apiKey/.test(content),'Content scripts must not access the secret or make API calls');
